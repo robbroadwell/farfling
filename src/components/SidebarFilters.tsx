@@ -46,29 +46,29 @@ export default function SidebarFilters({ activities }: Props) {
   const navigateWith = (activityName: string | null, countryName: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    // Get current path segments from URL
     const currentPath = window.location.pathname.split("/").filter(Boolean);
-    let currentActivitySlug = "";
-    let currentCountrySlug = "";
+    const currentActivitySlug = currentPath.find(
+      (segment) => !COUNTRIES.map((c) => c.toLowerCase().replace(/\s+/g, "-")).includes(segment)
+    );
+    const currentCountrySlug = currentPath.find((segment) =>
+      COUNTRIES.map((c) => c.toLowerCase().replace(/\s+/g, "-")).includes(segment)
+    );
 
-    if (currentPath.length === 2) {
-      [currentActivitySlug, currentCountrySlug] = currentPath;
-    } else if (currentPath.length === 1) {
-      if (COUNTRIES.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
-        currentCountrySlug = currentPath[0];
-      } else {
-        currentActivitySlug = currentPath[0];
-      }
-    }
-
-    const activitySlug = activityName
+    const nextActivitySlug = activityName
       ? activityName.toLowerCase().replace(/\s+/g, "-")
       : currentActivitySlug;
-    const countrySlug = countryName
+
+    const nextCountrySlug = countryName
       ? countryName.toLowerCase().replace(/\s+/g, "-")
       : currentCountrySlug;
 
-    const slugParts = [activitySlug, countrySlug].filter(Boolean).join("/");
+    const finalActivitySlug =
+      nextActivitySlug === currentActivitySlug && activityName ? "" : nextActivitySlug;
+    const finalCountrySlug =
+      nextCountrySlug === currentCountrySlug && countryName ? "" : nextCountrySlug;
+
+    const slugParts = [finalActivitySlug, finalCountrySlug].filter(Boolean).join("/");
+
     router.push(`/${slugParts}?${params.toString()}`);
   };
 
@@ -100,15 +100,14 @@ export default function SidebarFilters({ activities }: Props) {
   return (
     <div className="flex flex-col gap-4 px-4 pt-0 pb-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-gray-800">Activities</h2>
         <button
           className="relative text-sm px-3 py-1 border rounded bg-white hover:bg-gray-100 text-gray-800 font-semibold"
           onClick={() => setShowPopover(true)}
         >
           Filters
-          {Object.keys(appliedFilters).length > 0 && (
+          {searchParams && Array.from(searchParams.entries()).filter(([_, value]) => value && value.toLowerCase() !== "any").length > 0 && (
             <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {Object.keys(appliedFilters).length}
+              {Array.from(searchParams.entries()).filter(([_, value]) => value && value.toLowerCase() !== "any").length}
             </span>
           )}
         </button>
@@ -118,17 +117,25 @@ export default function SidebarFilters({ activities }: Props) {
             onApply={(filters) => {
               setShowPopover(false);
               setAppliedFilters(filters);
-              const params = new URLSearchParams(searchParams.toString());
+              const params = new URLSearchParams();
 
-              Object.keys(filters).forEach((key) => {
-                if (filters[key]) {
-                  params.set(key, filters[key]);
-                } else {
-                  params.delete(key);
+              let nextActivitySlug = currentActivitySlug;
+              let nextCountrySlug = currentCountrySlug;
+
+              Object.entries(filters).forEach(([key, value]) => {
+                if (value && value.toLowerCase() !== "any") {
+                  params.set(key, value);
+                  if (key === "activity") {
+                    nextActivitySlug = value.toLowerCase().replace(/\s+/g, "-");
+                  }
+                  if (key === "country") {
+                    nextCountrySlug = value.toLowerCase().replace(/\s+/g, "-");
+                  }
                 }
               });
 
-              router.push(`/?${params.toString()}`);
+              const slugParts = [nextActivitySlug, nextCountrySlug].filter(Boolean).join("/");
+              router.push(`/${slugParts}?${params.toString()}`);
             }}
           />
         )}
@@ -167,6 +174,7 @@ export default function SidebarFilters({ activities }: Props) {
         </div>
       </div>
 
+    <h3 className="text-sm font-semibold text-gray-800">Activity</h3>
       <div className="overflow-y-auto flex flex-wrap gap-2">
         {filteredActivities.map((activity) => (
           <button

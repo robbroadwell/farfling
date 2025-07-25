@@ -255,7 +255,12 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
         <div className="mt-6 flex justify-end">
           <button
             onClick={() => {
-              onApply(filters);
+              const activeFilters = Object.fromEntries(
+                Object.entries(filters).filter(
+                  ([_, value]) => value && value.toLowerCase() !== "any"
+                )
+              );
+              onApply(activeFilters);
               onClose();
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
