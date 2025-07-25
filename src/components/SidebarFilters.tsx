@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import FiltersPopover from "./FiltersPopover";
 
@@ -13,6 +13,19 @@ type Props = {
 };
 
 const COUNTRIES = ["USA", "France", "Japan", "Brazil", "New Zealand"];
+
+function usePathSegments() {
+  const [segments, setSegments] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname.split("/").filter(Boolean);
+      setSegments(path);
+    }
+  }, []);
+
+  return segments;
+}
 
 export default function SidebarFilters({ activities }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,9 +72,29 @@ export default function SidebarFilters({ activities }: Props) {
     router.push(`/${slugParts}?${params.toString()}`);
   };
 
+  const currentPath = usePathSegments();
+
+  const currentActivitySlug = useMemo(() => {
+    if (currentPath.length === 2) return currentPath[0];
+    if (currentPath.length === 1 && !COUNTRIES.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
+      return currentPath[0];
+    }
+    return "";
+  }, [currentPath]);
+
+  const currentCountrySlug = useMemo(() => {
+    if (currentPath.length === 2) return currentPath[1];
+    if (currentPath.length === 1 && COUNTRIES.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
+      return currentPath[0];
+    }
+    return "";
+  }, [currentPath]);
+
   const handleClick = (activityName: string) => {
-    setSelectedCountry(selectedCountry); // preserve selected country
-    navigateWith(activityName, selectedCountry);
+    const activitySlug = activityName.toLowerCase().replace(/\s+/g, "-");
+    const isActive = currentActivitySlug === activitySlug;
+    // When deselecting, pass selectedCountry instead of null
+    navigateWith(isActive ? null : activityName, isActive ? selectedCountry : selectedCountry);
   };
 
   return (
@@ -116,11 +149,14 @@ export default function SidebarFilters({ activities }: Props) {
             <button
               key={country}
               onClick={() => {
-                setSelectedCountry(country);
-                navigateWith(searchParams.get("activity"), country);
+                const countrySlug = country.toLowerCase().replace(/\s+/g, "-");
+                const isActive = currentCountrySlug === countrySlug;
+                setSelectedCountry(isActive ? "" : country);
+                // When deselecting, pass currentActivitySlug instead of null
+                navigateWith(isActive ? currentActivitySlug : currentActivitySlug, isActive ? null : country);
               }}
               className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap ${
-                selectedCountry === country
+                currentCountrySlug === country.toLowerCase().replace(/\s+/g, "-")
                   ? "bg-green-600 text-white border-green-600"
                   : "bg-white text-gray-800 border-gray-300"
               }`}
@@ -137,7 +173,7 @@ export default function SidebarFilters({ activities }: Props) {
             key={activity.name}
             onClick={() => handleClick(activity.name)}
             className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap ${
-              activity.name === currentActivity
+              currentActivitySlug === activity.name.toLowerCase().replace(/\s+/g, "-")
                 ? "bg-blue-600 text-white border-blue-600"
                 : "bg-white text-gray-800 border-gray-300"
             }`}
