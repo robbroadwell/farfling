@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type Filters = {
   [key: string]: string;
@@ -12,7 +13,14 @@ type FiltersPopoverProps = {
 };
 
 export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps) {
-  const [filters, setFilters] = useState<Filters>({});
+  const searchParams = useSearchParams();
+  const [filters, setFilters] = useState<Filters>(() => {
+    const initial: Filters = {};
+    searchParams.forEach((value, key) => {
+      initial[key] = value;
+    });
+    return initial;
+  });
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -42,6 +50,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Difficulty</label>
             <select
+              value={filters["difficulty"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("difficulty", e.target.value)}
             >
@@ -56,6 +65,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Season</label>
             <select
+              value={filters["season"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("season", e.target.value)}
             >
@@ -70,6 +80,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Duration</label>
             <select
+              value={filters["duration"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("duration", e.target.value)}
             >
@@ -85,6 +96,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Group Size</label>
             <select
+              value={filters["groupSize"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("groupSize", e.target.value)}
             >
@@ -99,6 +111,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Age Suitability</label>
             <select
+              value={filters["ageSuitability"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("ageSuitability", e.target.value)}
             >
@@ -114,6 +127,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
             <label className="block font-medium mb-1 text-gray-800">Country</label>
             <input
               type="text"
+              value={filters["country"] ?? ""}
               placeholder="e.g. Italy, Peru"
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("country", e.target.value)}
@@ -124,6 +138,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Price Range</label>
             <select
+              value={filters["priceRange"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("priceRange", e.target.value)}
             >
@@ -138,6 +153,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Weather Preference</label>
             <select
+              value={filters["weatherPreference"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("weatherPreference", e.target.value)}
             >
@@ -152,6 +168,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Accessibility</label>
             <select
+              value={filters["accessibility"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("accessibility", e.target.value)}
             >
@@ -164,6 +181,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Pet Friendly</label>
             <select
+              value={filters["petFriendly"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("petFriendly", e.target.value)}
             >
@@ -176,6 +194,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Activity Type</label>
             <select
+              value={filters["activityType"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("activityType", e.target.value)}
             >
@@ -189,6 +208,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Fitness Level</label>
             <select
+              value={filters["fitnessLevel"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("fitnessLevel", e.target.value)}
             >
@@ -202,6 +222,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Equipment Required</label>
             <select
+              value={filters["equipmentRequired"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("equipmentRequired", e.target.value)}
             >
@@ -215,6 +236,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Indoor / Outdoor</label>
             <select
+              value={filters["indoorOutdoor"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("indoorOutdoor", e.target.value)}
             >
@@ -227,6 +249,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Language</label>
             <select
+              value={filters["language"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("language", e.target.value)}
             >
@@ -241,6 +264,7 @@ export default function FiltersPopover({ onClose, onApply }: FiltersPopoverProps
           <div>
             <label className="block font-medium mb-1 text-gray-800">Instructor Availability</label>
             <select
+              value={filters["instructorAvailability"] ?? "Any"}
               className="w-full border p-2 rounded bg-white text-gray-900"
               onChange={(e) => handleChange("instructorAvailability", e.target.value)}
             >
