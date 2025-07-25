@@ -12,9 +12,12 @@ type Props = {
   activities: Activity[];
 };
 
+const COUNTRIES = ["USA", "France", "Japan", "Brazil", "New Zealand"];
+
 export default function SidebarFilters({ activities }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({});
+  const [selectedCountry, setSelectedCountry] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentActivity = searchParams.get("activity");
@@ -27,14 +30,38 @@ export default function SidebarFilters({ activities }: Props) {
     );
   }, [activities, searchQuery]);
 
-  const handleClick = (activityName: string) => {
+  const navigateWith = (activityName: string | null, countryName: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (params.get("activity") === activityName) {
-      params.delete("activity");
-    } else {
-      params.set("activity", activityName);
+
+    // Get current path segments from URL
+    const currentPath = window.location.pathname.split("/").filter(Boolean);
+    let currentActivitySlug = "";
+    let currentCountrySlug = "";
+
+    if (currentPath.length === 2) {
+      [currentActivitySlug, currentCountrySlug] = currentPath;
+    } else if (currentPath.length === 1) {
+      if (COUNTRIES.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
+        currentCountrySlug = currentPath[0];
+      } else {
+        currentActivitySlug = currentPath[0];
+      }
     }
-    router.push(`/?${params.toString()}`);
+
+    const activitySlug = activityName
+      ? activityName.toLowerCase().replace(/\s+/g, "-")
+      : currentActivitySlug;
+    const countrySlug = countryName
+      ? countryName.toLowerCase().replace(/\s+/g, "-")
+      : currentCountrySlug;
+
+    const slugParts = [activitySlug, countrySlug].filter(Boolean).join("/");
+    router.push(`/${slugParts}?${params.toString()}`);
+  };
+
+  const handleClick = (activityName: string) => {
+    setSelectedCountry(selectedCountry); // preserve selected country
+    navigateWith(activityName, selectedCountry);
   };
 
   return (
@@ -60,7 +87,6 @@ export default function SidebarFilters({ activities }: Props) {
               setAppliedFilters(filters);
               const params = new URLSearchParams(searchParams.toString());
 
-              // Clear all existing filter params before applying new ones
               Object.keys(filters).forEach((key) => {
                 if (filters[key]) {
                   params.set(key, filters[key]);
@@ -82,6 +108,28 @@ export default function SidebarFilters({ activities }: Props) {
         onChange={(e) => setSearchQuery(e.target.value)}
         className="w-full p-2 rounded-md border border-gray-300 text-gray-900"
       />
+
+      <div className="flex flex-col gap-2">
+        <h3 className="text-sm font-semibold text-gray-800">Country</h3>
+        <div className="flex flex-wrap gap-2">
+          {COUNTRIES.map((country) => (
+            <button
+              key={country}
+              onClick={() => {
+                setSelectedCountry(country);
+                navigateWith(searchParams.get("activity"), country);
+              }}
+              className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap ${
+                selectedCountry === country
+                  ? "bg-green-600 text-white border-green-600"
+                  : "bg-white text-gray-800 border-gray-300"
+              }`}
+            >
+              {country}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="overflow-y-auto flex flex-wrap gap-2">
         {filteredActivities.map((activity) => (

@@ -6,42 +6,42 @@ import SidebarFilters from "@/components/SidebarFilters";
 import MapViewClient from "@/components/MapViewClient";
 import { headers } from "next/headers";
 
-export default async function Home() {
+export default async function Home({ params }: { params: { slug?: string[] } }) {
   const supabase = createServerComponentClient<Database>({ cookies });
   const { data: activities } = await supabase.from("activities").select("name");
-  const url = headers().get("x-url") || "";
-  const params = new URLSearchParams(url.split("?")[1]);
-  const showMap = params.get("view") === "map";
+  const searchParams = new URLSearchParams(headers().get("x-url")?.split("?")[1]);
+  const showMap = searchParams.get("view") === "map";
 
-  // Build filters for adventures query based on params
-  let query = supabase.from("adventures").select("*, activities(adventure_activities(*), name)");
-  
-  // Filter by activity if specified
-  const activityFilter = params.get("activity");
-  if (activityFilter) {
-    query = query.eq("activities.name", activityFilter);
+  const slugParts = params.slug || [];
+  const [activitySlug, countrySlug] = slugParts;
+
+  let query = supabase
+    .from("adventures")
+    .select("*, activities(adventure_activities(*), name)");
+
+  if (activitySlug) {
+    query = query.contains("activities.name", [activitySlug]);
   }
 
-  // Filter by duration if specified
-  const durationFilter = params.get("duration");
-  if (durationFilter) {
-    if (durationFilter === "short") {
-      query = query.lte("duration_hours", 3);
-    } else if (durationFilter === "medium") {
-      query = query.gte("duration_hours", 3).lte("duration_hours", 6);
-    } else if (durationFilter === "long") {
-      query = query.gte("duration_hours", 6);
-    }
+  if (countrySlug) {
+    query = query.ilike("location", `%${countrySlug}%`);
   }
 
-  // Filter by recommended age if specified
-  const ageFilter = params.get("age");
+  const durationFilter = searchParams.get("duration");
+  if (durationFilter === "short") {
+    query = query.lte("duration_hours", 3);
+  } else if (durationFilter === "medium") {
+    query = query.gte("duration_hours", 3).lte("duration_hours", 6);
+  } else if (durationFilter === "long") {
+    query = query.gte("duration_hours", 6);
+  }
+
+  const ageFilter = searchParams.get("age");
   if (ageFilter) {
     query = query.eq("recommended_age", ageFilter);
   }
 
-  // Filter by strenuousness if specified
-  const strenuousnessFilter = params.get("strenuousness");
+  const strenuousnessFilter = searchParams.get("strenuousness");
   if (strenuousnessFilter) {
     query = query.eq("strenuousness", strenuousnessFilter);
   }
