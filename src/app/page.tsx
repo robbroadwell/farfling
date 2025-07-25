@@ -1,39 +1,86 @@
-import Image from "next/image";
+import { cookies } from "next/headers";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Database } from "@/types/supabase";
 
-export default function Home() {
+import SidebarFilters from "@/components/SidebarFilters";
+import MapViewClient from "@/components/MapViewClient";
+import { headers } from "next/headers";
+
+export default async function Home() {
+  const supabase = createServerComponentClient<Database>({ cookies });
+  const { data: activities } = await supabase.from("activities").select("name");
+  const url = headers().get("x-url") || "";
+  const params = new URLSearchParams(url.split("?")[1]);
+  const showMap = params.get("view") === "map";
+
+  // Build filters for adventures query based on params
+  let query = supabase.from("adventures").select("*, activities(adventure_activities(*), name)");
+  
+  // Filter by activity if specified
+  const activityFilter = params.get("activity");
+  if (activityFilter) {
+    query = query.eq("activities.name", activityFilter);
+  }
+
+  // Filter by duration if specified
+  const durationFilter = params.get("duration");
+  if (durationFilter) {
+    if (durationFilter === "short") {
+      query = query.lte("duration_hours", 3);
+    } else if (durationFilter === "medium") {
+      query = query.gte("duration_hours", 3).lte("duration_hours", 6);
+    } else if (durationFilter === "long") {
+      query = query.gte("duration_hours", 6);
+    }
+  }
+
+  // Filter by recommended age if specified
+  const ageFilter = params.get("age");
+  if (ageFilter) {
+    query = query.eq("recommended_age", ageFilter);
+  }
+
+  // Filter by strenuousness if specified
+  const strenuousnessFilter = params.get("strenuousness");
+  if (strenuousnessFilter) {
+    query = query.eq("strenuousness", strenuousnessFilter);
+  }
+
+  const { data: adventures } = await query;
+
   return (
-    <main className="min-h-screen bg-neutral-100 p-4">
-      <div className="max-w-7xl mx-auto">
-        <input
-          type="text"
-          placeholder="Search adventures"
-          className="w-full mb-4 p-3 rounded-md border border-gray-300"
-        />
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {['Hiking', 'Cycling', 'Skiing', 'Kayaking', 'Climbing'].map((type) => (
-            <button
-              key={type}
-              className="flex-shrink-0 px-4 py-2 bg-white border rounded-full text-sm"
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-          {/* Adventure cards go here */}
-          <div className="rounded-lg overflow-hidden shadow bg-white">
-            <img
-              src="/sample-hiking.jpg"
-              alt="Hiking the Dolomites"
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-4">
-              <h2 className="text-lg font-semibold">Hiking the Dolomites</h2>
-              <p className="text-sm text-gray-500">Cortina d'Ampezzo, Italy</p>
-              <p className="text-sm text-gray-700 mt-2">Amanda S.</p>
+    <main className="min-h-screen h-screen flex flex-col bg-neutral-100 w-full">
+      <div className="w-full flex-1 flex overflow-hidden">
+        {!showMap ? (
+          <div className="flex gap-6 h-full w-full">
+            <div className="min-w-[350px] max-w-[450px] w-72 shrink-0 resize-x overflow-auto border-r border-gray-200">
+              <SidebarFilters activities={activities || []} />
             </div>
+            <section className="flex-1 overflow-y-auto pr-5 py-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {adventures?.map((adventure) => (
+                  <div
+                    key={adventure.id}
+                    className="rounded-lg overflow-hidden shadow bg-white"
+                  >
+                    <img
+                      src={adventure.image_url || "/default.jpg"}
+                      alt={adventure.title}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="p-4">
+                      <h2 className="text-lg font-semibold">{adventure.title}</h2>
+                      <p className="text-sm text-gray-500">{adventure.location}</p>
+                      <p className="text-sm text-gray-700 mt-2">{adventure.created_by}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
-        </div>
+        ) : (
+          <MapViewClient adventures={adventures} />
+        )}
       </div>
     </main>
   );
