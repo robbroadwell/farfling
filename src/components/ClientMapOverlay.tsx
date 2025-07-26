@@ -10,7 +10,14 @@ function ClientMapOverlay({ adventures }: { adventures: any[] }) {
 
   const checkHash = () => {
     if (typeof window === "undefined") return;
-    setShowMap(window.location.hash.includes("map"));
+    const hasMap = window.location.hash.includes("map");
+    setShowMap(hasMap);
+
+    if (hasMap) {
+      document.body.classList.add("show-map");
+    } else {
+      document.body.classList.remove("show-map");
+    }
   };
 
   useEffect(() => {

@@ -48,13 +48,15 @@ export default async function Home({ params }: { params: { slug?: string[] } }) 
 
   return (
     <main className="min-h-screen h-screen flex flex-col bg-neutral-100 w-full relative">
-      <div className="relative z-10 p-4">
+      <div id="content-wrapper" className="relative z-10 p-4">
         <div className="mb-6">
-          <SidebarFilters
-            activities={activities || []}
-          />
+          <SidebarFilters activities={activities || []} />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          id="adventure-list"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 z-0"
+          style={{ display: typeof window !== "undefined" && window.location.hash.includes("map") ? "none" : undefined }}
+        >
           {adventures?.map((adventure) => (
             <div
               key={adventure.id}
@@ -74,7 +76,9 @@ export default async function Home({ params }: { params: { slug?: string[] } }) 
           ))}
         </div>
       </div>
-      <ClientMapOverlay adventures={adventures || []} />
+      <div className="absolute top-0 left-0 right-0 bottom-0 z-0">
+        <ClientMapOverlay adventures={adventures || []} />
+      </div>
     </main>
   );
 }
