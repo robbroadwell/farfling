@@ -10,20 +10,37 @@ import ActivityGrid from "@/components/ActivityGrid";
 export default async function Home({ params }: { params: { slug?: string[] } }) {
   const supabase = createServerComponentClient<Database>({ cookies });
   const { data: activities } = await supabase.from("activities").select("name");
+  const { data: countries } = await supabase.from("countries").select("name");
   const searchParams = new URLSearchParams(headers().get("x-url")?.split("?")[1]);
   const slugParts = params.slug || [];
   const [activitySlug, countrySlug] = slugParts;
 
   let query = supabase
     .from("adventures")
-    .select("*, activities(adventure_activities(*), name)");
+    .select("*, activities(name), countries(name)")
 
   if (activitySlug) {
-    query = query.contains("activities.name", [activitySlug]);
+    const { data: activityMatch } = await supabase
+      .from("activities")
+      .select("id")
+      .eq("name", activitySlug)
+      .single();
+
+    if (activityMatch) {
+      query = query.eq("activity_id", activityMatch.id);
+    }
   }
 
   if (countrySlug) {
-    query = query.ilike("location", `%${countrySlug}%`);
+    const { data: countryMatch } = await supabase
+      .from("countries")
+      .select("id")
+      .eq("name", countrySlug)
+      .single();
+
+    if (countryMatch) {
+      query = query.eq("country_id", countryMatch.id);
+    }
   }
 
   const durationFilter = searchParams.get("duration");
@@ -47,11 +64,13 @@ export default async function Home({ params }: { params: { slug?: string[] } }) 
 
   const { data: adventures } = await query;
 
+  console.log(adventures);
+
   return (
     <main className="min-h-screen h-screen flex flex-col bg-neutral-100 w-full relative">
       <div id="content-wrapper" className="relative z-10 p-4">
         <div className="mb-6">
-          <SidebarFilters activities={activities || []} />
+          <SidebarFilters activities={activities || []} countries={countries?.map(c => c.name) || []} />
         </div>
         <ActivityGrid adventures={adventures || []} />
       </div>

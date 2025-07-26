@@ -11,70 +11,9 @@ type Activity = {
 
 type Props = {
   activities: Activity[];
+  countries: string[];
   showMap: boolean;
 };
-
-const COUNTRIES = [
-  "USA",
-  "France",
-  "Japan",
-  "Brazil",
-  "New Zealand",
-  "Italy",
-  "Spain",
-  "Thailand",
-  "Mexico",
-  "Colombia",
-  "Indonesia",
-  "Portugal",
-  "Greece",
-  "Vietnam",
-  "Turkey",
-  "Peru",
-  "Costa Rica",
-  "Morocco",
-  "Egypt",
-  "Croatia",
-  "South Africa",
-  "Chile",
-  "Argentina",
-  "Norway",
-  "Iceland",
-  "Australia",
-  "Philippines",
-  "Malaysia",
-  "Cambodia",
-  "Laos",
-  "Nepal",
-  "Sri Lanka",
-  "Maldives",
-  "United Kingdom",
-  "Ireland",
-  "Germany",
-  "Switzerland",
-  "Austria",
-  "Czech Republic",
-  "Poland",
-  "Hungary",
-  "Netherlands",
-  "Belgium",
-  "Denmark",
-  "Sweden",
-  "Finland",
-  "Slovenia",
-  "Montenegro",
-  "Georgia",
-  "Armenia",
-  "Jordan",
-  "Israel",
-  "United Arab Emirates",
-  "Qatar",
-  "Oman",
-  "China",
-  "South Korea",
-  "Taiwan",
-  "Singapore"
-];
 
 function usePathSegments() {
   const [segments, setSegments] = useState<string[]>([]);
@@ -89,7 +28,7 @@ function usePathSegments() {
   return segments;
 }
 
-export default function SidebarFilters({ activities, showMap }: Props) {
+export default function SidebarFilters({ activities, countries, showMap }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({});
   const [selectedCountry, setSelectedCountry] = useState("");
@@ -118,34 +57,34 @@ export default function SidebarFilters({ activities, showMap }: Props) {
   }, [activities, searchQuery]);
 
   const filteredCountries = useMemo(() => {
-    return COUNTRIES.filter((country) =>
+    return countries.filter((country) =>
       country.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [searchQuery]);
+  }, [countries, searchQuery]);
 
   const currentPath = usePathSegments();
 
   const currentActivitySlug = useMemo(() => {
     if (currentPath.length === 2) return currentPath[0];
-    if (currentPath.length === 1 && !COUNTRIES.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
+    if (currentPath.length === 1 && !countries.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
       return currentPath[0];
     }
     return "";
-  }, [currentPath]);
+  }, [currentPath, countries]);
 
   const currentCountrySlug = useMemo(() => {
     if (currentPath.length === 2) return currentPath[1];
-    if (currentPath.length === 1 && COUNTRIES.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
+    if (currentPath.length === 1 && countries.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
       return currentPath[0];
     }
     return "";
-  }, [currentPath]);
+  }, [currentPath, countries]);
 
   const unifiedItems = useMemo(() => {
     const selectedItems = [];
 
     if (currentCountrySlug) {
-      const selectedCountry = COUNTRIES.find(
+      const selectedCountry = countries.find(
         c => c.toLowerCase().replace(/\s+/g, "-") === currentCountrySlug
       );
       if (selectedCountry) {
@@ -184,7 +123,7 @@ export default function SidebarFilters({ activities, showMap }: Props) {
         (b.type === "activity" && currentActivitySlug === b.name.toLowerCase().replace(/\s+/g, "-"));
       return aSelected === bSelected ? 0 : aSelected ? -1 : 1;
     });
-  }, [filteredCountries, filteredActivities, currentActivitySlug, currentCountrySlug, activities]);
+  }, [filteredCountries, filteredActivities, currentActivitySlug, currentCountrySlug, activities, countries]);
 
   const visibleItems = showAllActivities ? unifiedItems : unifiedItems.slice(0, 20);
 
@@ -193,10 +132,10 @@ export default function SidebarFilters({ activities, showMap }: Props) {
 
     const currentPath = window.location.pathname.split("/").filter(Boolean);
     const currentActivitySlug = currentPath.find(
-      (segment) => !COUNTRIES.map((c) => c.toLowerCase().replace(/\s+/g, "-")).includes(segment)
+      (segment) => !countries.map((c) => c.toLowerCase().replace(/\s+/g, "-")).includes(segment)
     );
     const currentCountrySlug = currentPath.find((segment) =>
-      COUNTRIES.map((c) => c.toLowerCase().replace(/\s+/g, "-")).includes(segment)
+      countries.map((c) => c.toLowerCase().replace(/\s+/g, "-")).includes(segment)
     );
 
     const nextActivitySlug = activityName
