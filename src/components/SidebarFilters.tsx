@@ -230,8 +230,10 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     className="absolute -top-2 -right-2 bg-white text-black w-5 h-5 rounded-full flex items-center justify-center text-xs border border-black shadow hover:bg-gray-100"
                     onClick={e => {
                       e.stopPropagation();
-                      // Remove only activity, preserve country if selected (use "" to clear)
-                      navigateWith(null, selectedCountry || "");
+                      // Remove only activity, preserve country if selected (use null to clear)
+                      // Find the currently selected country as a name, not slug
+                      const country = countries.find(c => c.name.toLowerCase().replace(/\s+/g, "-") === currentCountrySlug);
+                      navigateWith(null, country ? country.name : null);
                     }}
                     tabIndex={0}
                   >
@@ -280,8 +282,10 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     className="absolute -top-2 -right-2 bg-white text-black w-5 h-5 rounded-full flex items-center justify-center text-xs border border-black shadow hover:bg-gray-100"
                     onClick={e => {
                       e.stopPropagation();
-                      // Remove only country, preserve activity if selected (use "" to clear)
-                      navigateWith(currentActivity || "", null);
+                      // Remove only country, preserve activity if selected (use null to clear)
+                      // Find the currently selected activity as a name, not slug
+                      const activity = activities.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug);
+                      navigateWith(activity ? activity.name : null, null);
                     }}
                     tabIndex={0}
                   >
@@ -315,9 +319,12 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                   <button
                     key={`activity-${item.name}`}
                     onClick={() => {
+                      // When clicking an activity badge, pass the full country name (not slug) if present
+                      const activity = activities.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug);
+                      const country = countries.find(c => c.name.toLowerCase().replace(/\s+/g, "-") === currentCountrySlug);
                       const name = item.name;
-                      const isActive = currentActivitySlug === name.toLowerCase().replace(/\s+/g, "-");
-                      navigateWith(isActive ? null : name, selectedCountry);
+                      const isActiveBadge = currentActivitySlug === name.toLowerCase().replace(/\s+/g, "-");
+                      navigateWith(isActiveBadge ? null : name, country ? country.name : null);
                     }}
                     className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
                       isActive
@@ -373,11 +380,12 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                   <button
                     key={`country-${item.name}`}
                     onClick={() => {
+                      // When clicking a country badge, pass the full activity name (not slug) if present
+                      const activity = activities.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug);
                       const name = item.name;
-                      const countrySlug = name.toLowerCase().replace(/\s+/g, "-");
-                      const isActive = currentCountrySlug === countrySlug;
-                      setSelectedCountry(isActive ? "" : name);
-                      navigateWith(currentActivitySlug, isActive ? null : name);
+                      const isActiveBadge = currentCountrySlug === name.toLowerCase().replace(/\s+/g, "-");
+                      setSelectedCountry(isActiveBadge ? "" : name);
+                      navigateWith(activity ? activity.name : null, isActiveBadge ? null : name);
                     }}
                     className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
                       isActive
