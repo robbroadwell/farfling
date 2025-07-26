@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useRouter, useSearchParams } from "next/navigation";
 import FiltersPopover from "./FiltersPopover";
 import shuffle from "lodash.shuffle";
@@ -208,8 +208,8 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
               <div className="flex w-full gap-2">
                 <input
                   type="text"
-                  placeholder="Search activities or countries..."
-                  className="flex-1 px-4 py-3 rounded-full border border-gray-300 text-base"
+                  placeholder="Search anything..."
+                  className="w-full px-4 py-3 mt-0 rounded-full border border-gray-300 text-black text-lg placeholder-gray-500 bg-white"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -217,7 +217,11 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                   onClick={() => setSearchOpen(false)}
                   className="flex items-center justify-center px-4 py-2 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 cursor-pointer"
                 >
-                  <MagnifyingGlassIcon className="h-5 w-5" />
+                  {searchOpen ? (
+                    <XMarkIcon className="h-5 w-5" />
+                  ) : (
+                    <MagnifyingGlassIcon className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             ) : (
@@ -245,7 +249,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                               <span>{selectedActivity.name}</span>
                             </>
                           )
-                          : <span>What</span>;
+                          : <span>What?</span>;
                       })()}
                       {/* Remove badge */}
                       <button
@@ -271,7 +275,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     onClick={() => setActiveFilterTab("what")}
                     className={`flex-1 min-w-[0] flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold transition-all duration-200 border border-gray-300 text-gray-800 bg-white hover:bg-gray-100 cursor-pointer hover:scale-[1.02] hover:-translate-y-[1px] active:scale-[0.98] transition-transform ${activeFilterTab === "what" ? '!bg-gray-200' : ''}`}
                   >
-                    What
+                    What?
                   </button>
                 )}
                 {/* WHERE Button or Chip */}
@@ -297,7 +301,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                               <span>{selectedCountryObj.name}</span>
                             </>
                           )
-                          : <span>Where</span>;
+                          : <span>Where?</span>;
                       })()}
                       {/* Remove badge */}
                       <button
@@ -323,7 +327,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     onClick={() => setActiveFilterTab("where")}
                     className={`flex-1 min-w-[0] flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold transition-all duration-200 border border-gray-300 text-gray-800 bg-white hover:bg-gray-100 cursor-pointer hover:scale-[1.02] hover:-translate-y-[1px] active:scale-[0.98] transition-transform ${activeFilterTab === "where" ? '!bg-gray-200' : ''}`}
                   >
-                    Where
+                    Where?
                   </button>
                 )}
                 {/* WHEN Button */}
@@ -332,7 +336,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                   onClick={() => setActiveFilterTab("when")}
                   className={`flex-1 min-w-[0] flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold transition-all duration-200 border border-gray-300 text-gray-800 bg-white hover:bg-gray-100 cursor-pointer hover:scale-[1.02] hover:-translate-y-[1px] active:scale-[0.98] transition-transform ${activeFilterTab === "when" ? '!bg-gray-200' : ''}`}
                 >
-                  When
+                  When?
                 </button>
                 {/* SEARCH ICON BUTTON */}
                 <button
@@ -341,7 +345,11 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                   type="button"
                   aria-label="Search"
                 >
-                  <MagnifyingGlassIcon className="h-5 w-5" />
+                  {searchOpen ? (
+                    <XMarkIcon className="h-5 w-5" />
+                  ) : (
+                    <MagnifyingGlassIcon className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             )}
@@ -351,24 +359,38 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
             <>
               {searchTerm && (() => {
                 const combinedResults = [
-                  ...activities.map((a) => ({ type: "activity", name: a.name })),
-                  ...countries.map((c) => ({ type: "country", name: c.name })),
+                  ...activities.map((a) => ({ type: "activity", name: a.name, emoji: a.emoji })),
+                  ...countries.map((c) => ({ type: "country", name: c.name, emoji: c.emoji })),
                 ].filter((item) =>
                   item.name.toLowerCase().includes(searchTerm.toLowerCase())
                 );
                 return (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     {combinedResults.map((item) => (
                       <button
-                        key={item.type + item.name}
-                        onClick={() =>
-                          item.type === "activity"
-                            ? navigateWith(item.name, selectedCountry)
-                            : navigateWith(currentActivity, item.name)
-                        }
-                        className="px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-100"
+                        key={`search-${item.type}-${item.name}`}
+                        onClick={() => {
+                          const activity = activities.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug);
+                          const country = countries.find(c => c.name.toLowerCase().replace(/\s+/g, "-") === currentCountrySlug);
+                          const name = item.name;
+                          const slug = name.toLowerCase().replace(/\s+/g, "-");
+
+                          if (item.type === "activity") {
+                            const isActive = currentActivitySlug === slug;
+                            navigateWith(isActive ? null : name, country ? country.name : null);
+                          } else if (item.type === "country") {
+                            const isActive = currentCountrySlug === slug;
+                            navigateWith(activity ? activity.name : null, isActive ? null : name);
+                          }
+                        }}
+                        className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
+                          (item.type === "activity" && currentActivitySlug === item.name.toLowerCase().replace(/\s+/g, "-")) ||
+                          (item.type === "country" && currentCountrySlug === item.name.toLowerCase().replace(/\s+/g, "-"))
+                            ? "!bg-black !text-white !border-black"
+                            : "bg-white text-black border-black"
+                        }`}
                       >
-                        {item.name}
+                        {item.emoji ? `${item.emoji} ${item.name}` : item.name}
                       </button>
                     ))}
                   </div>
@@ -378,7 +400,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
           )}
           {!searchOpen && activeFilterTab === "what" && (
             <div className="max-w-6xl mx-auto px-2 relative flex flex-wrap gap-2 max-h-[15rem] overflow-hidden">
-              {(showAllActivities ? filteredActivities : filteredActivities.slice(0, 20)).map((item) => {
+              {filteredActivities.map((item) => {
                 const isActive = currentActivitySlug === item.name.toLowerCase().replace(/\s+/g, "-");
                 return (
                   <button
@@ -391,54 +413,21 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                       const isActiveBadge = currentActivitySlug === name.toLowerCase().replace(/\s+/g, "-");
                       navigateWith(isActiveBadge ? null : name, country ? country.name : null);
                     }}
-                  className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
-                    isActive
-                      ? "!bg-black !text-white !border-black"
-                      : "bg-white text-black border-black"
-                  }`}
+                    className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
+                      isActive
+                        ? "!bg-black !text-white !border-black"
+                        : "bg-white text-black border-black"
+                    }`}
                   >
                     {item.emoji ? `${item.emoji} ${item.name}` : item.name}
                   </button>
                 );
               })}
-              {filteredActivities.length > 20 && !showAllActivities && (
-                <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-white to-transparent flex items-center justify-end pr-2">
-                  <button
-                    onClick={() => {
-                      setShowAllActivities(true);
-                      const url = new URL(window.location.href);
-                      const hash = url.hash.replace(/^#/, "");
-                      const parts = new Set(hash.match(/[a-z]+/gi) || []);
-                      parts.add("expanded");
-                      url.hash = "#" + Array.from(parts).join("");
-                      window.history.replaceState(null, "", url.toString());
-                    }}
-                    className="text-sm px-3 py-1 border rounded-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold"
-                  >
-                    More
-                  </button>
-                </div>
-              )}
-              {showAllActivities && (
-                <button
-                  onClick={() => {
-                    setShowAllActivities(false);
-                    const url = new URL(window.location.href);
-                    const parts = new Set((url.hash.match(/[a-z]+/gi) || []).filter(Boolean));
-                    parts.delete("expanded");
-                    url.hash = parts.size > 0 ? `#${Array.from(parts).join("")}` : "";
-                    window.history.replaceState(null, "", url.toString());
-                  }}
-                  className="px-3 py-1 text-sm border rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold"
-                >
-                  Collapse
-                </button>
-              )}
             </div>
           )}
           {!searchOpen && activeFilterTab === "where" && (
             <div className="max-w-6xl mx-auto px-2 relative flex flex-wrap gap-2 max-h-[15rem] overflow-hidden">
-              {(showAllCountries ? filteredCountries : filteredCountries.slice(0, 20)).map((item) => {
+              {filteredCountries.map((item) => {
                 const countrySlug = item.name.toLowerCase().replace(/\s+/g, "-");
                 const isActive = currentCountrySlug === countrySlug;
                 return (
@@ -452,49 +441,16 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                       setSelectedCountry(isActiveBadge ? "" : name);
                       navigateWith(activity ? activity.name : null, isActiveBadge ? null : name);
                     }}
-                  className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
-                    isActive
-                      ? "!bg-black !text-white !border-black"
-                      : "bg-white text-black border-black"
-                  }`}
+                    className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
+                      isActive
+                        ? "!bg-black !text-white !border-black"
+                        : "bg-white text-black border-black"
+                    }`}
                   >
                     {item.emoji ? `${item.emoji} ${item.name}` : item.name}
                   </button>
                 );
               })}
-              {filteredCountries.length > 20 && !showAllCountries && (
-                <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-white to-transparent flex items-center justify-end pr-2">
-                  <button
-                    onClick={() => {
-                      setShowAllCountries(true);
-                      const url = new URL(window.location.href);
-                      const hash = url.hash.replace(/^#/, "");
-                      const parts = new Set(hash.match(/[a-z]+/gi) || []);
-                      parts.add("expanded");
-                      url.hash = "#" + Array.from(parts).join("");
-                      window.history.replaceState(null, "", url.toString());
-                    }}
-                    className="text-sm px-3 py-1 border rounded-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold"
-                  >
-                    More
-                  </button>
-                </div>
-              )}
-              {showAllCountries && (
-                <button
-                  onClick={() => {
-                    setShowAllCountries(false);
-                    const url = new URL(window.location.href);
-                    const parts = new Set((url.hash.match(/[a-z]+/gi) || []).filter(Boolean));
-                    parts.delete("expanded");
-                    url.hash = parts.size > 0 ? `#${Array.from(parts).join("")}` : "";
-                    window.history.replaceState(null, "", url.toString());
-                  }}
-                  className="px-3 py-1 text-sm border rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold"
-                >
-                  Collapse
-                </button>
-              )}
             </div>
           )}
           {!searchOpen && activeFilterTab === "when" && (
