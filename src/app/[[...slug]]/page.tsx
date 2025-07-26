@@ -5,6 +5,7 @@ import { Database } from "@/types/supabase";
 import SidebarFilters from "@/components/SidebarFilters";
 import { headers } from "next/headers";
 import ClientMapOverlay from "@/components/ClientMapOverlay";
+import ActivityGrid from "@/components/ActivityGrid";
 
 export default async function Home({ params }: { params: { slug?: string[] } }) {
   const supabase = createServerComponentClient<Database>({ cookies });
@@ -52,29 +53,7 @@ export default async function Home({ params }: { params: { slug?: string[] } }) 
         <div className="mb-6">
           <SidebarFilters activities={activities || []} />
         </div>
-        <div
-          id="adventure-list"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 z-0"
-          style={{ display: typeof window !== "undefined" && window.location.hash.includes("map") ? "none" : undefined }}
-        >
-          {adventures?.map((adventure) => (
-            <div
-              key={adventure.id}
-              className="rounded-lg overflow-hidden shadow bg-white"
-            >
-              <img
-                src={adventure.image_url || "/default.jpg"}
-                alt={adventure.title}
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-4">
-                <h2 className="text-lg font-semibold">{adventure.title}</h2>
-                <p className="text-sm text-gray-500">{adventure.location}</p>
-                <p className="text-sm text-gray-700 mt-2">{adventure.created_by}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <ActivityGrid adventures={adventures || []} />
       </div>
       <div className="absolute top-0 left-0 right-0 bottom-0 z-0">
         <ClientMapOverlay adventures={adventures || []} />
