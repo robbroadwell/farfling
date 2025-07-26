@@ -9,38 +9,29 @@ import ActivityGrid from "@/components/ActivityGrid";
 
 export default async function Home({ params }: { params: { slug?: string[] } }) {
   const supabase = createServerComponentClient<Database>({ cookies });
-  const { data: activities } = await supabase.from("activities").select("name");
-  const { data: countries } = await supabase.from("countries").select("name");
+  const { data: activities } = await supabase.from("activities").select("id, name");
+  const { data: countries } = await supabase.from("countries").select("id, name");
   const searchParams = new URLSearchParams(headers().get("x-url")?.split("?")[1]);
   const slugParts = params.slug || [];
-  const [activitySlug, countrySlug] = slugParts;
+  const activitySlug = slugParts.find(part =>
+    activities?.some(a => a.name.toLowerCase().replace(/\s+/g, "-") === part.toLowerCase())
+  );
+  const countrySlug = slugParts.find(part =>
+    countries?.some(c => c.name.toLowerCase().replace(/\s+/g, "-") === part.toLowerCase())
+  );
 
   let query = supabase
     .from("adventures")
-    .select("*, activities(name), countries(name)")
+    .select("*, activities(name), countries(name)");
 
-  if (activitySlug) {
-    const { data: activityMatch } = await supabase
-      .from("activities")
-      .select("id")
-      .eq("name", activitySlug)
-      .single();
-
-    if (activityMatch) {
-      query = query.eq("activity_id", activityMatch.id);
-    }
+  const activityMatch = activities?.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === activitySlug?.toLowerCase());
+  if (activityMatch) {
+    query = query.eq("activity_id", activityMatch.id);
   }
 
-  if (countrySlug) {
-    const { data: countryMatch } = await supabase
-      .from("countries")
-      .select("id")
-      .eq("name", countrySlug)
-      .single();
-
-    if (countryMatch) {
-      query = query.eq("country_id", countryMatch.id);
-    }
+  const countryMatch = countries?.find(c => c.name.toLowerCase().replace(/\s+/g, "-") === countrySlug?.toLowerCase());
+  if (countryMatch) {
+    query = query.eq("country_id", countryMatch.id);
   }
 
   const durationFilter = searchParams.get("duration");
