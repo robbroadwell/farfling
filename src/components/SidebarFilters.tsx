@@ -11,6 +11,7 @@ type Activity = {
 
 type Props = {
   activities: Activity[];
+  showMap: boolean;
 };
 
 const COUNTRIES = [
@@ -88,7 +89,7 @@ function usePathSegments() {
   return segments;
 }
 
-export default function SidebarFilters({ activities }: Props) {
+export default function SidebarFilters({ activities, showMap }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({});
   const [selectedCountry, setSelectedCountry] = useState("");
@@ -104,7 +105,7 @@ export default function SidebarFilters({ activities }: Props) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const hash = window.location.hash;
-      if (hash === "#expanded") {
+      if (hash.includes("expanded")) {
         setShowAllActivities(true);
       }
     }
@@ -141,11 +142,40 @@ export default function SidebarFilters({ activities }: Props) {
   }, [currentPath]);
 
   const unifiedItems = useMemo(() => {
+    const selectedItems = [];
+
+    if (currentCountrySlug) {
+      const selectedCountry = COUNTRIES.find(
+        c => c.toLowerCase().replace(/\s+/g, "-") === currentCountrySlug
+      );
+      if (selectedCountry) {
+        selectedItems.push({ type: "country", name: selectedCountry });
+      }
+    }
+
+    if (currentActivitySlug) {
+      const selectedActivity = activities.find(
+        a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug
+      );
+      if (selectedActivity) {
+        selectedItems.push({ type: "activity", name: selectedActivity.name });
+      }
+    }
+
     const countryItems = filteredCountries.map((name) => ({ type: "country", name }));
     const activityItems = filteredActivities.map((item) => ({ type: "activity", name: item.name }));
-    const combined = [...countryItems, ...activityItems];
 
-    return shuffle(combined).sort((a, b) => {
+    const combined = [...selectedItems, ...countryItems, ...activityItems];
+
+    const seen = new Set();
+    const deduped = combined.filter((item) => {
+      const key = `${item.type}-${item.name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    return shuffle(deduped).sort((a, b) => {
       const aSelected =
         (a.type === "country" && currentCountrySlug === a.name.toLowerCase().replace(/\s+/g, "-")) ||
         (a.type === "activity" && currentActivitySlug === a.name.toLowerCase().replace(/\s+/g, "-"));
@@ -154,7 +184,7 @@ export default function SidebarFilters({ activities }: Props) {
         (b.type === "activity" && currentActivitySlug === b.name.toLowerCase().replace(/\s+/g, "-"));
       return aSelected === bSelected ? 0 : aSelected ? -1 : 1;
     });
-  }, [filteredCountries, filteredActivities, currentActivitySlug, currentCountrySlug]);
+  }, [filteredCountries, filteredActivities, currentActivitySlug, currentCountrySlug, activities]);
 
   const visibleItems = showAllActivities ? unifiedItems : unifiedItems.slice(0, 20);
 
@@ -184,7 +214,10 @@ export default function SidebarFilters({ activities }: Props) {
 
     const slugParts = [finalActivitySlug, finalCountrySlug].filter(Boolean).join("/");
 
-    const hash = showAllActivities ? "#expanded" : "";
+    const hashParts = [];
+    if (showAllActivities) hashParts.push("expanded");
+    if (showMap) hashParts.push("map");
+    const hash = hashParts.length > 0 ? `#${hashParts.join("")}` : "";
     router.push(`/${slugParts}?${params.toString()}${hash}`);
   };
 
@@ -223,6 +256,24 @@ export default function SidebarFilters({ activities }: Props) {
                 {Array.from(searchParams.entries()).filter(([_, value]) => value && value.toLowerCase() !== "any").length}
               </span>
             )}
+          </button>
+          <button
+            className="text-sm px-3 py-1 border rounded bg-white hover:bg-gray-100 text-gray-800 font-semibold"
+            onClick={() => {
+              const url = new URL(window.location.href);
+              const hasMap = url.hash.includes("map");
+
+              const newHash = url.hash
+                .replace("map", "")
+                .replace(/#+$/, "")
+                .replace(/^#+/, "#")
+                .replace("##", "#");
+
+              url.hash = hasMap ? newHash : (newHash === "#" || newHash === "" ? "#map" : `${newHash}map`);
+              window.history.replaceState(null, "", url.toString());
+            }}
+          >
+            {showMap ? "Hide Map" : "Show Map"}
           </button>
         </div>
         <div className="text-sm text-gray-600">👤 Account</div>
@@ -274,8 +325,9 @@ export default function SidebarFilters({ activities }: Props) {
               }
             }}
             className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap ${
-              (item.type === "country" && currentCountrySlug === item.name.toLowerCase().replace(/\s+/g, "-")) ||
-              (item.type === "activity" && currentActivitySlug === item.name.toLowerCase().replace(/\s+/g, "-"))
+              item.type === "country" && currentCountrySlug === item.name.toLowerCase().replace(/\s+/g, "-")
+                ? "bg-red-600 text-white border-red-600"
+                : item.type === "activity" && currentActivitySlug === item.name.toLowerCase().replace(/\s+/g, "-")
                 ? "bg-green-600 text-white border-green-600"
                 : "bg-white text-gray-800 border-gray-300"
             }`}

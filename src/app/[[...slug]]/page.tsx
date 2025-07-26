@@ -3,15 +3,13 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Database } from "@/types/supabase";
 
 import SidebarFilters from "@/components/SidebarFilters";
-import MapViewClient from "@/components/MapViewClient";
 import { headers } from "next/headers";
+import ClientMapOverlay from "@/components/ClientMapOverlay";
 
 export default async function Home({ params }: { params: { slug?: string[] } }) {
   const supabase = createServerComponentClient<Database>({ cookies });
   const { data: activities } = await supabase.from("activities").select("name");
   const searchParams = new URLSearchParams(headers().get("x-url")?.split("?")[1]);
-  const showMap = searchParams.get("view") === "map";
-
   const slugParts = params.slug || [];
   const [activitySlug, countrySlug] = slugParts;
 
@@ -49,37 +47,34 @@ export default async function Home({ params }: { params: { slug?: string[] } }) 
   const { data: adventures } = await query;
 
   return (
-    <main className="min-h-screen h-screen flex flex-col bg-neutral-100 w-full">
-      <div className="w-full flex-1 overflow-y-auto">
-        {!showMap ? (
-          <div className="p-4">
-            <div className="mb-6">
-              <SidebarFilters activities={activities || []} />
+    <main className="min-h-screen h-screen flex flex-col bg-neutral-100 w-full relative">
+      <div className="relative z-10 p-4">
+        <div className="mb-6">
+          <SidebarFilters
+            activities={activities || []}
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {adventures?.map((adventure) => (
+            <div
+              key={adventure.id}
+              className="rounded-lg overflow-hidden shadow bg-white"
+            >
+              <img
+                src={adventure.image_url || "/default.jpg"}
+                alt={adventure.title}
+                className="w-full h-48 object-cover"
+              />
+              <div className="p-4">
+                <h2 className="text-lg font-semibold">{adventure.title}</h2>
+                <p className="text-sm text-gray-500">{adventure.location}</p>
+                <p className="text-sm text-gray-700 mt-2">{adventure.created_by}</p>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {adventures?.map((adventure) => (
-                <div
-                  key={adventure.id}
-                  className="rounded-lg overflow-hidden shadow bg-white"
-                >
-                  <img
-                    src={adventure.image_url || "/default.jpg"}
-                    alt={adventure.title}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="p-4">
-                    <h2 className="text-lg font-semibold">{adventure.title}</h2>
-                    <p className="text-sm text-gray-500">{adventure.location}</p>
-                    <p className="text-sm text-gray-700 mt-2">{adventure.created_by}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <MapViewClient adventures={adventures} />
-        )}
+          ))}
+        </div>
       </div>
+      <ClientMapOverlay adventures={adventures || []} />
     </main>
   );
 }
