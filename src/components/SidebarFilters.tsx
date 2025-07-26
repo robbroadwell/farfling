@@ -7,11 +7,17 @@ import shuffle from "lodash.shuffle";
 
 type Activity = {
   name: string;
+  emoji?: string;
+};
+
+type Country = {
+  name: string;
+  emoji?: string;
 };
 
 type Props = {
   activities: Activity[];
-  countries: string[];
+  countries: Country[];
   showMap: boolean;
 };
 
@@ -58,7 +64,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
 
   const filteredCountries = useMemo(() => {
     return countries.filter((country) =>
-      country.toLowerCase().includes(searchQuery.toLowerCase())
+      country.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [countries, searchQuery]);
 
@@ -66,7 +72,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
 
   const currentActivitySlug = useMemo(() => {
     if (currentPath.length === 2) return currentPath[0];
-    if (currentPath.length === 1 && !countries.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
+    if (currentPath.length === 1 && !countries.map(c => c.name.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
       return currentPath[0];
     }
     return "";
@@ -74,7 +80,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
 
   const currentCountrySlug = useMemo(() => {
     if (currentPath.length === 2) return currentPath[1];
-    if (currentPath.length === 1 && countries.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
+    if (currentPath.length === 1 && countries.map(c => c.name.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
       return currentPath[0];
     }
     return "";
@@ -85,10 +91,10 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
 
     if (currentCountrySlug) {
       const selectedCountry = countries.find(
-        c => c.toLowerCase().replace(/\s+/g, "-") === currentCountrySlug
+        c => c.name.toLowerCase().replace(/\s+/g, "-") === currentCountrySlug
       );
       if (selectedCountry) {
-        selectedItems.push({ type: "country", name: selectedCountry });
+        selectedItems.push({ type: "country", name: selectedCountry.name, emoji: selectedCountry.emoji });
       }
     }
 
@@ -97,12 +103,20 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
         a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug
       );
       if (selectedActivity) {
-        selectedItems.push({ type: "activity", name: selectedActivity.name });
+        selectedItems.push({ type: "activity", name: selectedActivity.name, emoji: selectedActivity.emoji });
       }
     }
 
-    const countryItems = filteredCountries.map((name) => ({ type: "country", name }));
-    const activityItems = filteredActivities.map((item) => ({ type: "activity", name: item.name }));
+    const countryItems = filteredCountries.map((item) => ({
+      type: "country",
+      name: item.name,
+      emoji: item.emoji,
+    }));
+    const activityItems = filteredActivities.map((item) => ({
+      type: "activity",
+      name: item.name,
+      emoji: item.emoji,
+    }));
 
     const combined = [...selectedItems, ...countryItems, ...activityItems];
 
@@ -132,10 +146,10 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
 
     const currentPath = window.location.pathname.split("/").filter(Boolean);
     const currentActivitySlug = currentPath.find(
-      (segment) => !countries.map((c) => c.toLowerCase().replace(/\s+/g, "-")).includes(segment)
+      (segment) => !countries.map((c) => c.name.toLowerCase().replace(/\s+/g, "-")).includes(segment)
     );
     const currentCountrySlug = currentPath.find((segment) =>
-      countries.map((c) => c.toLowerCase().replace(/\s+/g, "-")).includes(segment)
+      countries.map((c) => c.name.toLowerCase().replace(/\s+/g, "-")).includes(segment)
     );
 
     const nextActivitySlug = activityName
@@ -171,13 +185,13 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
   const isMapVisible = typeof window !== "undefined" && window.location.hash.includes("map");
 
   return (
-    <div className="flex flex-col gap-4 px-4 pt-0 pb-4">
-      <div className="flex items-center justify-between gap-4 pt-4 px-4">
+    <div className="flex flex-col gap-4 pt-0 pb-4">
+      <div className="flex items-center justify-between gap-4 pt-4 pr-2">
         <button
           onClick={() => router.push("/")}
-          className="text-xl font-bold text-gray-800 hover:text-green-600 transition-colors"
+          className="transition-opacity hover:opacity-80"
         >
-          🌍 Logo
+          <img src="/logo.png" alt="Logo" className="h-12 w-auto" />
         </button>
         <div className="flex-1 max-w-6xl mx-auto flex items-center gap-2">
           <input
@@ -187,7 +201,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-grow p-2 rounded-md border border-gray-300 text-gray-900"
           />
-          <button
+          {/* <button
             className="relative text-sm px-3 py-1 border rounded bg-white hover:bg-gray-100 text-gray-800 font-semibold"
             onClick={() => setShowPopover(true)}
           >
@@ -197,8 +211,8 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                 {Array.from(searchParams.entries()).filter(([_, value]) => value && value.toLowerCase() !== "any").length}
               </span>
             )}
-          </button>
-          <button
+          </button> */}
+          {/* <button
             className="text-sm px-3 py-1 border rounded bg-white hover:bg-gray-100 text-gray-800 font-semibold"
             onClick={() => {
               const url = new URL(window.location.href);
@@ -215,7 +229,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
             }}
           >
             {isMapVisible ? "View as List" : "View on Map"}
-          </button>
+          </button> */}
         </div>
         <div className="text-sm text-gray-600">👤 Account</div>
       </div>
@@ -265,15 +279,15 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                 navigateWith(isActive ? null : name, selectedCountry);
               }
             }}
-            className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap ${
+            className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
               item.type === "country" && currentCountrySlug === item.name.toLowerCase().replace(/\s+/g, "-")
-                ? "bg-red-600 text-white border-red-600"
+                ? "!bg-black !text-white !border-black"
                 : item.type === "activity" && currentActivitySlug === item.name.toLowerCase().replace(/\s+/g, "-")
-                ? "bg-green-600 text-white border-green-600"
-                : "bg-white text-gray-800 border-gray-300"
+                ? "!bg-black !text-white !border-black"
+                : "bg-white text-black border-black"
             }`}
           >
-            {item.name}
+            {item.emoji ? `${item.emoji} ${item.name}` : item.name}
           </button>
         ))}
         {showAllActivities && (

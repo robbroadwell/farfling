@@ -9,8 +9,8 @@ import ActivityGrid from "@/components/ActivityGrid";
 
 export default async function Home({ params }: { params: { slug?: string[] } }) {
   const supabase = createServerComponentClient<Database>({ cookies });
-  const { data: activities } = await supabase.from("activities").select("id, name");
-  const { data: countries } = await supabase.from("countries").select("id, name");
+  const { data: activities } = await supabase.from("activities").select("id, name, emoji");
+  const { data: countries } = await supabase.from("countries").select("id, name, emoji");
   const searchParams = new URLSearchParams(headers().get("x-url")?.split("?")[1]);
   const slugParts = params.slug || [];
   const activitySlug = slugParts.find(part =>
@@ -58,10 +58,10 @@ export default async function Home({ params }: { params: { slug?: string[] } }) 
   console.log(adventures);
 
   return (
-    <main className="min-h-screen h-screen flex flex-col bg-neutral-100 w-full relative">
+    <main className="min-h-screen flex flex-col bg-white w-full relative">
       <div id="content-wrapper" className="relative z-10 p-4">
         <div className="mb-6">
-          <SidebarFilters activities={activities || []} countries={countries?.map(c => c.name) || []} />
+          <SidebarFilters activities={activities || []} countries={countries || []} />
         </div>
         <ActivityGrid adventures={adventures || []} />
       </div>
