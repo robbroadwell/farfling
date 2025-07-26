@@ -20,21 +20,38 @@ export default async function Home({ params }: { params: { slug?: string[] } }) 
     countries?.some(c => c.name.toLowerCase().replace(/\s+/g, "-") === part.toLowerCase())
   );
 
+  const activityMatch = activities?.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === activitySlug?.toLowerCase());
+  const countryMatch = countries?.find(c => c.name.toLowerCase().replace(/\s+/g, "-") === countrySlug?.toLowerCase());
+
+  const durationFilter = searchParams.get("duration");
+  const ageFilter = searchParams.get("age");
+  const strenuousnessFilter = searchParams.get("strenuousness");
+
+  if (!activityMatch && !countryMatch && !durationFilter && !ageFilter && !strenuousnessFilter) {
+    return (
+      <main className="min-h-screen flex flex-col bg-white w-full relative">
+        <div id="content-wrapper" className="relative z-10 p-4">
+          <div className="mb-6">
+            <SidebarFilters activities={activities || []} countries={countries || []} />
+          </div>
+          <ActivityGrid adventures={[]} />
+        </div>
+      </main>
+    );
+  }
+
   let query = supabase
     .from("adventures")
     .select("*, activities(name), countries(name)");
 
-  const activityMatch = activities?.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === activitySlug?.toLowerCase());
   if (activityMatch) {
     query = query.eq("activity_id", activityMatch.id);
   }
 
-  const countryMatch = countries?.find(c => c.name.toLowerCase().replace(/\s+/g, "-") === countrySlug?.toLowerCase());
   if (countryMatch) {
     query = query.eq("country_id", countryMatch.id);
   }
 
-  const durationFilter = searchParams.get("duration");
   if (durationFilter === "short") {
     query = query.lte("duration_hours", 3);
   } else if (durationFilter === "medium") {
@@ -43,12 +60,10 @@ export default async function Home({ params }: { params: { slug?: string[] } }) 
     query = query.gte("duration_hours", 6);
   }
 
-  const ageFilter = searchParams.get("age");
   if (ageFilter) {
     query = query.eq("recommended_age", ageFilter);
   }
 
-  const strenuousnessFilter = searchParams.get("strenuousness");
   if (strenuousnessFilter) {
     query = query.eq("strenuousness", strenuousnessFilter);
   }
@@ -64,9 +79,6 @@ export default async function Home({ params }: { params: { slug?: string[] } }) 
           <SidebarFilters activities={activities || []} countries={countries || []} />
         </div>
         <ActivityGrid adventures={adventures || []} />
-      </div>
-      <div className="absolute top-0 left-0 right-0 bottom-0 z-0">
-        <ClientMapOverlay adventures={adventures || []} />
       </div>
     </main>
   );

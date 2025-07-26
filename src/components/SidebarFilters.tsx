@@ -399,7 +399,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
             </>
           )}
           {!searchOpen && activeFilterTab === "what" && (
-            <div className="max-w-6xl mx-auto px-2 relative flex flex-wrap gap-2 max-h-[15rem] overflow-hidden">
+            <div className="max-w-6xl mx-auto px-2 relative flex flex-wrap gap-2">
               {filteredActivities.map((item) => {
                 const isActive = currentActivitySlug === item.name.toLowerCase().replace(/\s+/g, "-");
                 return (
@@ -426,7 +426,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
             </div>
           )}
           {!searchOpen && activeFilterTab === "where" && (
-            <div className="max-w-6xl mx-auto px-2 relative flex flex-wrap gap-2 max-h-[15rem] overflow-hidden">
+            <div className="max-w-6xl mx-auto px-2 relative flex flex-wrap gap-2">
               {filteredCountries.map((item) => {
                 const countrySlug = item.name.toLowerCase().replace(/\s+/g, "-");
                 const isActive = currentCountrySlug === countrySlug;
