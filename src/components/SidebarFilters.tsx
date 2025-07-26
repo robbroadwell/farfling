@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import FiltersPopover from "./FiltersPopover";
+import shuffle from "lodash.shuffle";
 
 type Activity = {
   name: string;
@@ -12,7 +13,67 @@ type Props = {
   activities: Activity[];
 };
 
-const COUNTRIES = ["USA", "France", "Japan", "Brazil", "New Zealand"];
+const COUNTRIES = [
+  "USA",
+  "France",
+  "Japan",
+  "Brazil",
+  "New Zealand",
+  "Italy",
+  "Spain",
+  "Thailand",
+  "Mexico",
+  "Colombia",
+  "Indonesia",
+  "Portugal",
+  "Greece",
+  "Vietnam",
+  "Turkey",
+  "Peru",
+  "Costa Rica",
+  "Morocco",
+  "Egypt",
+  "Croatia",
+  "South Africa",
+  "Chile",
+  "Argentina",
+  "Norway",
+  "Iceland",
+  "Australia",
+  "Philippines",
+  "Malaysia",
+  "Cambodia",
+  "Laos",
+  "Nepal",
+  "Sri Lanka",
+  "Maldives",
+  "United Kingdom",
+  "Ireland",
+  "Germany",
+  "Switzerland",
+  "Austria",
+  "Czech Republic",
+  "Poland",
+  "Hungary",
+  "Netherlands",
+  "Belgium",
+  "Denmark",
+  "Sweden",
+  "Finland",
+  "Slovenia",
+  "Montenegro",
+  "Georgia",
+  "Armenia",
+  "Jordan",
+  "Israel",
+  "United Arab Emirates",
+  "Qatar",
+  "Oman",
+  "China",
+  "South Korea",
+  "Taiwan",
+  "Singapore"
+];
 
 function usePathSegments() {
   const [segments, setSegments] = useState<string[]>([]);
@@ -37,11 +98,65 @@ export default function SidebarFilters({ activities }: Props) {
 
   const [showPopover, setShowPopover] = useState(false);
 
+  const [showAllCountries, setShowAllCountries] = useState(false);
+  const [showAllActivities, setShowAllActivities] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      if (hash === "#expanded") {
+        setShowAllActivities(true);
+      }
+    }
+  }, []);
+
   const filteredActivities = useMemo(() => {
     return activities.filter((activity) =>
       activity.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [activities, searchQuery]);
+
+  const filteredCountries = useMemo(() => {
+    return COUNTRIES.filter((country) =>
+      country.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
+
+  const currentPath = usePathSegments();
+
+  const currentActivitySlug = useMemo(() => {
+    if (currentPath.length === 2) return currentPath[0];
+    if (currentPath.length === 1 && !COUNTRIES.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
+      return currentPath[0];
+    }
+    return "";
+  }, [currentPath]);
+
+  const currentCountrySlug = useMemo(() => {
+    if (currentPath.length === 2) return currentPath[1];
+    if (currentPath.length === 1 && COUNTRIES.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
+      return currentPath[0];
+    }
+    return "";
+  }, [currentPath]);
+
+  const unifiedItems = useMemo(() => {
+    const countryItems = filteredCountries.map((name) => ({ type: "country", name }));
+    const activityItems = filteredActivities.map((item) => ({ type: "activity", name: item.name }));
+    const combined = [...countryItems, ...activityItems];
+
+    return shuffle(combined).sort((a, b) => {
+      const aSelected =
+        (a.type === "country" && currentCountrySlug === a.name.toLowerCase().replace(/\s+/g, "-")) ||
+        (a.type === "activity" && currentActivitySlug === a.name.toLowerCase().replace(/\s+/g, "-"));
+      const bSelected =
+        (b.type === "country" && currentCountrySlug === b.name.toLowerCase().replace(/\s+/g, "-")) ||
+        (b.type === "activity" && currentActivitySlug === b.name.toLowerCase().replace(/\s+/g, "-"));
+      return aSelected === bSelected ? 0 : aSelected ? -1 : 1;
+    });
+  }, [filteredCountries, filteredActivities, currentActivitySlug, currentCountrySlug]);
+
+  const visibleItems = showAllActivities ? unifiedItems : unifiedItems.slice(0, 20);
 
   const navigateWith = (activityName: string | null, countryName: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -69,26 +184,10 @@ export default function SidebarFilters({ activities }: Props) {
 
     const slugParts = [finalActivitySlug, finalCountrySlug].filter(Boolean).join("/");
 
-    router.push(`/${slugParts}?${params.toString()}`);
+    const hash = showAllActivities ? "#expanded" : "";
+    router.push(`/${slugParts}?${params.toString()}${hash}`);
   };
 
-  const currentPath = usePathSegments();
-
-  const currentActivitySlug = useMemo(() => {
-    if (currentPath.length === 2) return currentPath[0];
-    if (currentPath.length === 1 && !COUNTRIES.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
-      return currentPath[0];
-    }
-    return "";
-  }, [currentPath]);
-
-  const currentCountrySlug = useMemo(() => {
-    if (currentPath.length === 2) return currentPath[1];
-    if (currentPath.length === 1 && COUNTRIES.map(c => c.toLowerCase().replace(/\s+/g, "-")).includes(currentPath[0])) {
-      return currentPath[0];
-    }
-    return "";
-  }, [currentPath]);
 
   const handleClick = (activityName: string) => {
     const activitySlug = activityName.toLowerCase().replace(/\s+/g, "-");
@@ -99,96 +198,117 @@ export default function SidebarFilters({ activities }: Props) {
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-0 pb-4">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between gap-4 pt-4 px-4">
         <button
-          className="relative text-sm px-3 py-1 border rounded bg-white hover:bg-gray-100 text-gray-800 font-semibold"
-          onClick={() => setShowPopover(true)}
+          onClick={() => router.push("/")}
+          className="text-xl font-bold text-gray-800 hover:text-green-600 transition-colors"
         >
-          Filters
-          {searchParams && Array.from(searchParams.entries()).filter(([_, value]) => value && value.toLowerCase() !== "any").length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {Array.from(searchParams.entries()).filter(([_, value]) => value && value.toLowerCase() !== "any").length}
-            </span>
-          )}
+          🌍 Logo
         </button>
-        {showPopover && (
-          <FiltersPopover
-            onClose={() => setShowPopover(false)}
-            onApply={(filters) => {
-              setShowPopover(false);
-              setAppliedFilters(filters);
-              const params = new URLSearchParams();
-
-              let nextActivitySlug = currentActivitySlug;
-              let nextCountrySlug = currentCountrySlug;
-
-              Object.entries(filters).forEach(([key, value]) => {
-                if (value && value.toLowerCase() !== "any") {
-                  params.set(key, value);
-                  if (key === "activity") {
-                    nextActivitySlug = value.toLowerCase().replace(/\s+/g, "-");
-                  }
-                  if (key === "country") {
-                    nextCountrySlug = value.toLowerCase().replace(/\s+/g, "-");
-                  }
-                }
-              });
-
-              const slugParts = [nextActivitySlug, nextCountrySlug].filter(Boolean).join("/");
-              router.push(`/${slugParts}?${params.toString()}`);
-            }}
+        <div className="flex-1 max-w-6xl mx-auto flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Search activities or countries"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-grow p-2 rounded-md border border-gray-300 text-gray-900"
           />
-        )}
-      </div>
-
-      <input
-        type="text"
-        placeholder="Search activities"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full p-2 rounded-md border border-gray-300 text-gray-900"
-      />
-
-      <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold text-gray-800">Country</h3>
-        <div className="flex flex-wrap gap-2">
-          {COUNTRIES.map((country) => (
-            <button
-              key={country}
-              onClick={() => {
-                const countrySlug = country.toLowerCase().replace(/\s+/g, "-");
-                const isActive = currentCountrySlug === countrySlug;
-                setSelectedCountry(isActive ? "" : country);
-                // When deselecting, pass currentActivitySlug instead of null
-                navigateWith(isActive ? currentActivitySlug : currentActivitySlug, isActive ? null : country);
-              }}
-              className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap ${
-                currentCountrySlug === country.toLowerCase().replace(/\s+/g, "-")
-                  ? "bg-green-600 text-white border-green-600"
-                  : "bg-white text-gray-800 border-gray-300"
-              }`}
-            >
-              {country}
-            </button>
-          ))}
-        </div>
-      </div>
-
-    <h3 className="text-sm font-semibold text-gray-800">Activity</h3>
-      <div className="overflow-y-auto flex flex-wrap gap-2">
-        {filteredActivities.map((activity) => (
           <button
-            key={activity.name}
-            onClick={() => handleClick(activity.name)}
+            className="relative text-sm px-3 py-1 border rounded bg-white hover:bg-gray-100 text-gray-800 font-semibold"
+            onClick={() => setShowPopover(true)}
+          >
+            Filters
+            {searchParams && Array.from(searchParams.entries()).filter(([_, value]) => value && value.toLowerCase() !== "any").length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {Array.from(searchParams.entries()).filter(([_, value]) => value && value.toLowerCase() !== "any").length}
+              </span>
+            )}
+          </button>
+        </div>
+        <div className="text-sm text-gray-600">👤 Account</div>
+      </div>
+
+      {showPopover && (
+        <FiltersPopover
+          onClose={() => setShowPopover(false)}
+          onApply={(filters) => {
+            setShowPopover(false);
+            setAppliedFilters(filters);
+            const params = new URLSearchParams();
+
+            let nextActivitySlug = currentActivitySlug;
+            let nextCountrySlug = currentCountrySlug;
+
+            Object.entries(filters).forEach(([key, value]) => {
+              if (value && value.toLowerCase() !== "any") {
+                params.set(key, value);
+                if (key === "activity") {
+                  nextActivitySlug = value.toLowerCase().replace(/\s+/g, "-");
+                }
+                if (key === "country") {
+                  nextCountrySlug = value.toLowerCase().replace(/\s+/g, "-");
+                }
+              }
+            });
+
+            const slugParts = [nextActivitySlug, nextCountrySlug].filter(Boolean).join("/");
+            router.push(`/${slugParts}?${params.toString()}`);
+          }}
+        />
+      )}
+
+      <div className={`w-full max-w-full flex gap-2 relative ${showAllActivities ? 'flex-wrap overflow-visible whitespace-normal' : 'overflow-hidden whitespace-nowrap'}`}>
+        {visibleItems.map((item) => (
+          <button
+            key={`${item.type}-${item.name}`}
+            onClick={() => {
+              const name = item.name;
+              if (item.type === "country") {
+                const countrySlug = name.toLowerCase().replace(/\s+/g, "-");
+                const isActive = currentCountrySlug === countrySlug;
+                setSelectedCountry(isActive ? "" : name);
+                navigateWith(currentActivitySlug, isActive ? null : name);
+              } else {
+                const isActive = currentActivitySlug === name.toLowerCase().replace(/\s+/g, "-");
+                navigateWith(isActive ? null : name, selectedCountry);
+              }
+            }}
             className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap ${
-              currentActivitySlug === activity.name.toLowerCase().replace(/\s+/g, "-")
-                ? "bg-blue-600 text-white border-blue-600"
+              (item.type === "country" && currentCountrySlug === item.name.toLowerCase().replace(/\s+/g, "-")) ||
+              (item.type === "activity" && currentActivitySlug === item.name.toLowerCase().replace(/\s+/g, "-"))
+                ? "bg-green-600 text-white border-green-600"
                 : "bg-white text-gray-800 border-gray-300"
             }`}
           >
-            {activity.name}
+            {item.name}
           </button>
         ))}
+        {showAllActivities && (
+          <button
+            onClick={() => {
+              setShowAllActivities(false);
+              const url = new URL(window.location.href);
+              url.hash = "";
+              window.history.replaceState(null, "", url.toString());
+            }}
+            className="px-3 py-1 text-sm border rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold"
+          >
+            Collapse
+          </button>
+        )}
+        {unifiedItems.length > 20 && !showAllActivities && (
+          <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-white to-transparent flex items-center justify-end pr-2">
+            <button
+              onClick={() => {
+                setShowAllActivities(true);
+                window.history.replaceState(null, "", window.location.pathname + window.location.search + "#expanded");
+              }}
+              className="text-sm px-3 py-1 border rounded-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold"
+            >
+              More
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

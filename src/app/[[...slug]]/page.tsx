@@ -50,33 +50,31 @@ export default async function Home({ params }: { params: { slug?: string[] } }) 
 
   return (
     <main className="min-h-screen h-screen flex flex-col bg-neutral-100 w-full">
-      <div className="w-full flex-1 flex overflow-hidden">
+      <div className="w-full flex-1 overflow-y-auto">
         {!showMap ? (
-          <div className="flex gap-6 h-full w-full">
-            <div className="min-w-[350px] max-w-[450px] w-72 shrink-0 resize-x overflow-auto border-r border-gray-200">
+          <div className="p-4">
+            <div className="mb-6">
               <SidebarFilters activities={activities || []} />
             </div>
-            <section className="flex-1 overflow-y-auto pr-5 py-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {adventures?.map((adventure) => (
-                  <div
-                    key={adventure.id}
-                    className="rounded-lg overflow-hidden shadow bg-white"
-                  >
-                    <img
-                      src={adventure.image_url || "/default.jpg"}
-                      alt={adventure.title}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="p-4">
-                      <h2 className="text-lg font-semibold">{adventure.title}</h2>
-                      <p className="text-sm text-gray-500">{adventure.location}</p>
-                      <p className="text-sm text-gray-700 mt-2">{adventure.created_by}</p>
-                    </div>
+              {adventures?.map((adventure) => (
+                <div
+                  key={adventure.id}
+                  className="rounded-lg overflow-hidden shadow bg-white"
+                >
+                  <img
+                    src={adventure.image_url || "/default.jpg"}
+                    alt={adventure.title}
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="p-4">
+                    <h2 className="text-lg font-semibold">{adventure.title}</h2>
+                    <p className="text-sm text-gray-500">{adventure.location}</p>
+                    <p className="text-sm text-gray-700 mt-2">{adventure.created_by}</p>
                   </div>
-                ))}
-              </div>
-            </section>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <MapViewClient adventures={adventures} />
