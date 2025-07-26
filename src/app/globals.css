@@ -26,6 +26,10 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+body.show-map {
+  overflow: hidden;
+}
+
 body.show-map #adventure-list {
   visibility: hidden;
 }

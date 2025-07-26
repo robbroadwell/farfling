@@ -229,6 +229,8 @@ export default function SidebarFilters({ activities, showMap }: Props) {
     navigateWith(isActive ? null : activityName, isActive ? selectedCountry : selectedCountry);
   };
 
+  const isMapVisible = typeof window !== "undefined" && window.location.hash.includes("map");
+
   return (
     <div className="flex flex-col gap-4 px-4 pt-0 pb-4">
       <div className="flex items-center justify-between gap-4 pt-4 px-4">
@@ -273,7 +275,7 @@ export default function SidebarFilters({ activities, showMap }: Props) {
               window.history.replaceState(null, "", url.toString());
             }}
           >
-            {showMap ? "Hide Map" : "Show Map"}
+            {isMapVisible ? "View as List" : "View on Map"}
           </button>
         </div>
         <div className="text-sm text-gray-600">👤 Account</div>
@@ -340,7 +342,9 @@ export default function SidebarFilters({ activities, showMap }: Props) {
             onClick={() => {
               setShowAllActivities(false);
               const url = new URL(window.location.href);
-              url.hash = "";
+              const parts = new Set((url.hash.match(/[a-z]+/gi) || []).filter(Boolean));
+              parts.delete("expanded");
+              url.hash = parts.size > 0 ? `#${Array.from(parts).join("")}` : "";
               window.history.replaceState(null, "", url.toString());
             }}
             className="px-3 py-1 text-sm border rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold"
@@ -353,7 +357,12 @@ export default function SidebarFilters({ activities, showMap }: Props) {
             <button
               onClick={() => {
                 setShowAllActivities(true);
-                window.history.replaceState(null, "", window.location.pathname + window.location.search + "#expanded");
+                const url = new URL(window.location.href);
+                const hash = url.hash.replace(/^#/, "");
+                const parts = new Set(hash.match(/[a-z]+/gi) || []);
+                parts.add("expanded");
+                url.hash = "#" + Array.from(parts).join("");
+                window.history.replaceState(null, "", url.toString());
               }}
               className="text-sm px-3 py-1 border rounded-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold"
             >
