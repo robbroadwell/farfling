@@ -259,7 +259,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                   <div className="flex-1 min-w-[0] relative">
                     <button
                       type="button"
-                      className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-black text-white text-base font-semibold relative w-full"
+                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold relative w-full bg-[#153968] text-white border-[#153968]`}
                       onClick={() => setActiveFilterTab("what")}
                       tabIndex={0}
                       style={{ cursor: "pointer" }}
@@ -299,7 +299,9 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                   <button
                     type="button"
                     onClick={() => setActiveFilterTab("what")}
-                    className={`flex-1 min-w-[0] flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold transition-all duration-200 border border-gray-300 text-gray-800 bg-white hover:bg-gray-100 cursor-pointer hover:scale-[1.02] hover:-translate-y-[1px] active:scale-[0.98] transition-transform ${activeFilterTab === "what" ? '!bg-gray-200' : ''}`}
+                    className={`flex-1 min-w-[0] flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold border ${
+                      activeFilterTab === "what" ? 'border-[#153968] text-[#153968] bg-white' : 'border-gray-300 text-gray-800 bg-white'
+                    } hover:border-[#153968] hover:text-[#153968] hover:bg-white cursor-pointer transition-none`}
                   >
                     What?
                   </button>
@@ -309,7 +311,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                   <div className="flex-1 min-w-[0] relative">
                     <button
                       type="button"
-                      className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-black text-white text-base font-semibold relative w-full"
+                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold relative w-full bg-[#153968] text-white border-[#153968]`}
                       onClick={() => setActiveFilterTab("where")}
                       tabIndex={0}
                       style={{ cursor: "pointer" }}
@@ -351,7 +353,11 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     <button
                       type="button"
                       onClick={() => setActiveFilterTab("where")}
-                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold transition-all duration-200 border border-gray-300 text-gray-800 bg-white hover:bg-gray-100 cursor-pointer hover:scale-[1.02] hover:-translate-y-[1px] active:scale-[0.98] transition-transform w-full ${activeFilterTab === "where" ? '!bg-gray-200' : ''}`}
+                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold relative w-full ${
+                        selectedRadius > 0
+                          ? 'bg-[#153968] text-white border-[#153968]'
+                          : 'bg-white text-black border border-gray-300 hover:border-[#153968] hover:text-[#153968]'
+                      } transition-none`}
                     >
                       <span>{selectedRadiusDisplay}</span>
                     </button>
@@ -376,7 +382,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                 <button
                   type="button"
                   onClick={() => setActiveFilterTab("when")}
-                  className={`flex-1 min-w-[0] flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold transition-all duration-200 border border-gray-300 text-gray-800 bg-white hover:bg-gray-100 cursor-pointer hover:scale-[1.02] hover:-translate-y-[1px] active:scale-[0.98] transition-transform ${activeFilterTab === "when" ? '!bg-gray-200' : ''}`}
+                  className={`flex-1 min-w-[0] flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold border border-[#153968] text-[#153968] hover:bg-white transition-none cursor-pointer`}
                 >
                   When?
                 </button>
@@ -421,7 +427,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                         className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
                           (item.type === "activity" && currentActivitySlug === item.name.toLowerCase().replace(/\s+/g, "-")) ||
                           (item.type === "country" && currentCountrySlug === item.name.toLowerCase().replace(/\s+/g, "-"))
-                            ? "!bg-black !text-white !border-black"
+                            ? "bg-[#153968] text-white border-[#153968]"
                             : "bg-white text-black border-black"
                         }`}
                       >
@@ -449,7 +455,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     }}
                     className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
                       isActive
-                        ? "!bg-black !text-white !border-black"
+                        ? "bg-[#153968] text-white border-[#153968]"
                         : "bg-white text-black border-black"
                     }`}
                   >
@@ -517,7 +523,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     center={userLocation}
                     radius={selectedRadius}
                     onRadiusChange={(r) => {
-                      setSelectedCountry("");
+                      setPendingCountry(null); // Clear country when radius is selected
                       setSelectedRadius(r);
                     }}
                     renderRadiusControlsAbove
@@ -536,13 +542,12 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     <button
                       key={`country-${item.name}`}
                       onClick={() => {
-                        setPendingCountry(
-                          pendingCountry === item.name ? null : item.name
-                        );
+                        setPendingCountry(pendingCountry === item.name ? null : item.name);
+                        setSelectedRadius(0); // Clear radius when country is selected
                       }}
                       className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
                         isActive
-                          ? "!bg-black !text-white !border-black"
+                          ? "bg-[#153968] text-white border-[#153968]"
                           : "bg-white text-black border-black"
                       }`}
                     >
