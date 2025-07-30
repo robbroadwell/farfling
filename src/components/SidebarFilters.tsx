@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useRouter, useSearchParams } from "next/navigation";
-import FiltersPopover from "./FiltersPopover";
+// import FiltersPopover from "./FiltersPopover";
 import shuffle from "lodash.shuffle";
+import MapComponent from "./MapComponent";
+import { useState, useMemo, useEffect } from "react";
+
 
 type Activity = {
   name: string;
@@ -35,10 +37,13 @@ function usePathSegments() {
   return segments;
 }
 
+
 export default function SidebarFilters({ activities, countries, showMap }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({});
   const [selectedCountry, setSelectedCountry] = useState("");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [selectedRadius, setSelectedRadius] = useState<number>(5); // default to 5 miles
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentActivity = searchParams.get("activity");
@@ -179,6 +184,9 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
 
   const isMapVisible = typeof window !== "undefined" && window.location.hash.includes("map");
 
+  // Show selected radius as a WHERE chip if no country is selected
+  const selectedRadiusDisplay = !currentCountrySlug && selectedRadius ? `🧭 ${selectedRadius} mi` : "Where?";
+
   return (
     <div className="bg-[#fffdf5] p-6">
       <header className="flex items-center justify-between mb-8">
@@ -189,7 +197,20 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
         >
           <img src="/logo.png" alt="Logo" className="h-10 w-auto" />
         </button>
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
+          {/* SEARCH ICON BUTTON moved here, left of Log in */}
+          <button
+            onClick={() => setSearchOpen(!searchOpen)}
+            className="flex items-center justify-center px-4 py-2 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 cursor-pointer"
+            type="button"
+            aria-label="Search"
+          >
+            {searchOpen ? (
+              <XMarkIcon className="h-5 w-5" />
+            ) : (
+              <MagnifyingGlassIcon className="h-5 w-5" />
+            )}
+          </button>
           <button className="px-4 py-2 border border-black rounded-full text-black font-semibold hover:bg-gray-100">
             Log in
           </button>
@@ -313,6 +334,8 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                           // Remove only country, preserve activity if selected (use null to clear)
                           // Find the currently selected activity as a name, not slug
                           const activity = activities.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug);
+                          // Also clear radius when removing country
+                          setSelectedRadius(0);
                           navigateWith(activity ? activity.name : null, null);
                         }}
                         tabIndex={0}
@@ -322,13 +345,30 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     </button>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setActiveFilterTab("where")}
-                    className={`flex-1 min-w-[0] flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold transition-all duration-200 border border-gray-300 text-gray-800 bg-white hover:bg-gray-100 cursor-pointer hover:scale-[1.02] hover:-translate-y-[1px] active:scale-[0.98] transition-transform ${activeFilterTab === "where" ? '!bg-gray-200' : ''}`}
-                  >
-                    Where?
-                  </button>
+                  <div className="flex-1 min-w-[0] relative">
+                    <button
+                      type="button"
+                      onClick={() => setActiveFilterTab("where")}
+                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-semibold transition-all duration-200 border border-gray-300 text-gray-800 bg-white hover:bg-gray-100 cursor-pointer hover:scale-[1.02] hover:-translate-y-[1px] active:scale-[0.98] transition-transform w-full ${activeFilterTab === "where" ? '!bg-gray-200' : ''}`}
+                    >
+                      <span>{selectedRadiusDisplay}</span>
+                    </button>
+                    {/* If a radius is selected (and no country), show a removable chip */}
+                    {!currentCountrySlug && selectedRadius > 0 && (
+                      <button
+                        type="button"
+                        aria-label="Remove radius filter"
+                        className="absolute -top-2 -right-2 bg-white text-black w-5 h-5 rounded-full flex items-center justify-center text-xs border border-black shadow hover:bg-gray-100"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setSelectedRadius(0);
+                        }}
+                        tabIndex={0}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 )}
                 {/* WHEN Button */}
                 <button
@@ -338,18 +378,12 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                 >
                   When?
                 </button>
-                {/* SEARCH ICON BUTTON */}
+                {/* GO BUTTON (green), replacing search icon button */}
                 <button
-                  onClick={() => setSearchOpen(!searchOpen)}
-                  className="flex items-center justify-center px-4 py-2 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 cursor-pointer"
+                  className="flex items-center justify-center px-4 py-2 rounded-full bg-green-500 text-white font-semibold hover:bg-green-600 transition"
                   type="button"
-                  aria-label="Search"
                 >
-                  {searchOpen ? (
-                    <XMarkIcon className="h-5 w-5" />
-                  ) : (
-                    <MagnifyingGlassIcon className="h-5 w-5" />
-                  )}
+                  GO
                 </button>
               </div>
             )}
@@ -426,32 +460,67 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
             </div>
           )}
           {!searchOpen && activeFilterTab === "where" && (
-            <div className="max-w-6xl mx-auto px-2 relative flex flex-wrap gap-2">
-              {filteredCountries.map((item) => {
-                const countrySlug = item.name.toLowerCase().replace(/\s+/g, "-");
-                const isActive = currentCountrySlug === countrySlug;
-                return (
-                  <button
-                    key={`country-${item.name}`}
+            <>
+              {/* "Near me" header */}
+              <h2 className="text-lg font-bold text-black mb-2 px-2">Near me</h2>
+              <div className="mb-4 relative w-full h-64 rounded-lg overflow-hidden border border-gray-300">
+                {!("geolocation" in navigator) && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 text-white flex items-center justify-center z-10">
+                    Location services not supported
+                  </div>
+                )}
+                {!userLocation && (
+                  <div
+                    className="absolute inset-0 bg-black bg-opacity-50 text-white flex items-center justify-center cursor-pointer z-10"
                     onClick={() => {
-                      // When clicking a country badge, pass the full activity name (not slug) if present
-                      const activity = activities.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug);
-                      const name = item.name;
-                      const isActiveBadge = currentCountrySlug === name.toLowerCase().replace(/\s+/g, "-");
-                      setSelectedCountry(isActiveBadge ? "" : name);
-                      navigateWith(activity ? activity.name : null, isActiveBadge ? null : name);
+                      if (!("geolocation" in navigator)) return;
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                        (err) => console.error("Geolocation error:", err)
+                      );
                     }}
-                    className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
-                      isActive
-                        ? "!bg-black !text-white !border-black"
-                        : "bg-white text-black border-black"
-                    }`}
                   >
-                    {item.emoji ? `${item.emoji} ${item.name}` : item.name}
-                  </button>
-                );
-              })}
-            </div>
+                    Location permission required. Click to enable.
+                  </div>
+                )}
+                <MapComponent
+                  center={userLocation}
+                  radius={selectedRadius}
+                  onRadiusChange={(r) => {
+                    setSelectedCountry("");
+                    setSelectedRadius(r);
+                  }}
+                />
+              </div>
+              {/* "Or anywhere in the world" header */}
+              <h2 className="text-lg font-bold text-black mt-6 mb-2 px-2">Or anywhere in the world</h2>
+              <div className="max-w-6xl mx-auto px-2 relative flex flex-wrap gap-2">
+                {filteredCountries.map((item) => {
+                  const countrySlug = item.name.toLowerCase().replace(/\s+/g, "-");
+                  const isActive = currentCountrySlug === countrySlug;
+                  return (
+                    <button
+                      key={`country-${item.name}`}
+                      onClick={() => {
+                        // When clicking a country badge, pass the full activity name (not slug) if present
+                        const activity = activities.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug);
+                        const name = item.name;
+                        const isActiveBadge = currentCountrySlug === name.toLowerCase().replace(/\s+/g, "-");
+                        setSelectedCountry(isActiveBadge ? "" : name);
+                        navigateWith(activity ? activity.name : null, isActiveBadge ? null : name);
+                      }}
+                      className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
+                        isActive
+                          ? "!bg-black !text-white !border-black"
+                          : "bg-white text-black border-black"
+                      }`}
+                    >
+                      {item.emoji ? `${item.emoji} ${item.name}` : item.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
           )}
           {!searchOpen && activeFilterTab === "when" && (
             <div className="max-w-6xl mx-auto px-2 relative flex flex-wrap gap-2 max-h-[15rem] overflow-hidden">
