@@ -4,7 +4,9 @@ import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useRouter, useSearchParams } from "next/navigation";
 // import FiltersPopover from "./FiltersPopover";
 import shuffle from "lodash.shuffle";
-import MapComponent from "./MapComponent";
+import dynamic from 'next/dynamic';
+
+const MapComponent = dynamic(() => import('./MapComponent'), { ssr: false });
 import { useState, useMemo, useEffect } from "react";
 
 
@@ -463,7 +465,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
             <>
               {/* "Near me" header */}
               <h2 className="text-lg font-bold text-black mb-2 px-2">Near me</h2>
-              <div className="mb-4 relative w-full h-64 rounded-lg overflow-hidden border border-gray-300">
+              <div className="mb-4 relative w-full h-92 rounded-lg overflow-hidden border border-gray-300">
                 {!("geolocation" in navigator) && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 text-white flex items-center justify-center z-10">
                     Location services not supported
@@ -472,25 +474,57 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                 {!userLocation && (
                   <div
                     className="absolute inset-0 bg-black bg-opacity-50 text-white flex items-center justify-center cursor-pointer z-10"
-                    onClick={() => {
-                      if (!("geolocation" in navigator)) return;
-                      navigator.geolocation.getCurrentPosition(
-                        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                        (err) => console.error("Geolocation error:", err)
-                      );
+                    onClick={async () => {
+                      console.log("Clicked to request location");
+                      console.log("Checking if navigator.geolocation is available:", !!navigator.geolocation);
+
+                      if (!("geolocation" in navigator)) {
+                        console.log("Geolocation not supported");
+                        return;
+                      }
+
+                      try {
+                        const permissionStatus = await navigator.permissions.query({ name: "geolocation" as PermissionName });
+                        console.log("Permission state:", permissionStatus.state);
+
+                        if (permissionStatus.state === "denied") {
+                          alert("Location access denied. Please enable it in your browser settings.");
+                          return;
+                        }
+
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            console.log("Position obtained:", pos);
+                            console.log("Setting user location state:", { lat: pos.coords.latitude, lng: pos.coords.longitude });
+                            setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                          },
+                          (err) => {
+                            console.error("Geolocation error:", err);
+                            console.log("Could not obtain location, error:", err);
+                            alert("Unable to access your location. Please check your browser settings.");
+                          }
+                        );
+                      } catch (err) {
+                        console.error("Permission query failed:", err);
+                      }
                     }}
                   >
                     Location permission required. Click to enable.
                   </div>
                 )}
-                <MapComponent
-                  center={userLocation}
-                  radius={selectedRadius}
-                  onRadiusChange={(r) => {
-                    setSelectedCountry("");
-                    setSelectedRadius(r);
-                  }}
-                />
+                {(
+                  // Add a statement to log rendering of MapComponent with center and radius
+                  console.log("Rendering MapComponent with center:", userLocation, "and radius:", selectedRadius),
+                  <MapComponent
+                    center={userLocation}
+                    radius={selectedRadius}
+                    onRadiusChange={(r) => {
+                      setSelectedCountry("");
+                      setSelectedRadius(r);
+                    }}
+                    renderRadiusControlsAbove
+                  />
+                )}
               </div>
               {/* "Or anywhere in the world" header */}
               <h2 className="text-lg font-bold text-black mt-6 mb-2 px-2">Or anywhere in the world</h2>
