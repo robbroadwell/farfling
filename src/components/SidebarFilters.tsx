@@ -44,8 +44,10 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
   const [searchQuery, setSearchQuery] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({});
   const [selectedCountry, setSelectedCountry] = useState("");
+  const [pendingActivity, setPendingActivity] = useState<string | null>(null);
+  const [pendingCountry, setPendingCountry] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [selectedRadius, setSelectedRadius] = useState<number>(5); // default to 5 miles
+  const [selectedRadius, setSelectedRadius] = useState<number>(0); // start with no radius selected
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentActivity = searchParams.get("activity");
@@ -178,16 +180,19 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
 
 
   const handleClick = (activityName: string) => {
-    const activitySlug = activityName.toLowerCase().replace(/\s+/g, "-");
-    const isActive = currentActivitySlug === activitySlug;
-    // When deselecting, pass selectedCountry instead of null
-    navigateWith(isActive ? null : activityName, isActive ? selectedCountry : selectedCountry);
+    setPendingActivity((prev) =>
+      prev === activityName ? null : activityName
+    );
   };
 
   const isMapVisible = typeof window !== "undefined" && window.location.hash.includes("map");
 
   // Show selected radius as a WHERE chip if no country is selected
   const selectedRadiusDisplay = !currentCountrySlug && selectedRadius ? `🧭 ${selectedRadius} mi` : "Where?";
+
+  // For top bar display logic, show pending selections if available
+  const displayActivity = pendingActivity || currentActivitySlug;
+  const displayCountry = pendingCountry || currentCountrySlug;
 
   return (
     <div className="bg-[#fffdf5] p-6">
@@ -250,7 +255,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
             ) : (
               <div className="flex w-full items-center gap-4 px-0">
                 {/* WHAT Button or Chip */}
-                {currentActivitySlug ? (
+                {displayActivity ? (
                   <div className="flex-1 min-w-[0] relative">
                     <button
                       type="button"
@@ -262,8 +267,9 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     >
                       {/* Activity emoji and name */}
                       {(() => {
+                        const selectedActivityName = pendingActivity || currentActivitySlug;
                         const selectedActivity = activities.find(
-                          a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug
+                          a => a.name.toLowerCase().replace(/\s+/g, "-") === selectedActivityName?.toLowerCase().replace(/\s+/g, "-")
                         );
                         return selectedActivity
                           ? (
@@ -281,10 +287,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                         className="absolute -top-2 -right-2 bg-white text-black w-5 h-5 rounded-full flex items-center justify-center text-xs border border-black shadow hover:bg-gray-100"
                         onClick={e => {
                           e.stopPropagation();
-                          // Remove only activity, preserve country if selected (use null to clear)
-                          // Find the currently selected country as a name, not slug
-                          const country = countries.find(c => c.name.toLowerCase().replace(/\s+/g, "-") === currentCountrySlug);
-                          navigateWith(null, country ? country.name : null);
+                          setPendingActivity(null);
                         }}
                         tabIndex={0}
                       >
@@ -302,7 +305,7 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                   </button>
                 )}
                 {/* WHERE Button or Chip */}
-                {currentCountrySlug ? (
+                {displayCountry ? (
                   <div className="flex-1 min-w-[0] relative">
                     <button
                       type="button"
@@ -314,8 +317,9 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     >
                       {/* Country emoji and name */}
                       {(() => {
+                        const selectedCountryName = pendingCountry || currentCountrySlug;
                         const selectedCountryObj = countries.find(
-                          c => c.name.toLowerCase().replace(/\s+/g, "-") === currentCountrySlug
+                          c => c.name.toLowerCase().replace(/\s+/g, "-") === selectedCountryName?.toLowerCase().replace(/\s+/g, "-")
                         );
                         return selectedCountryObj
                           ? (
@@ -333,12 +337,8 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                         className="absolute -top-2 -right-2 bg-white text-black w-5 h-5 rounded-full flex items-center justify-center text-xs border border-black shadow hover:bg-gray-100"
                         onClick={e => {
                           e.stopPropagation();
-                          // Remove only country, preserve activity if selected (use null to clear)
-                          // Find the currently selected activity as a name, not slug
-                          const activity = activities.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug);
-                          // Also clear radius when removing country
+                          setPendingCountry(null);
                           setSelectedRadius(0);
-                          navigateWith(activity ? activity.name : null, null);
                         }}
                         tabIndex={0}
                       >
@@ -384,6 +384,11 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                 <button
                   className="flex items-center justify-center px-4 py-2 rounded-full bg-green-500 text-white font-semibold hover:bg-green-600 transition"
                   type="button"
+                  onClick={() => {
+                    navigateWith(pendingActivity, pendingCountry);
+                    setPendingActivity(null);
+                    setPendingCountry(null);
+                  }}
                 >
                   GO
                 </button>
@@ -406,17 +411,11 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                       <button
                         key={`search-${item.type}-${item.name}`}
                         onClick={() => {
-                          const activity = activities.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug);
-                          const country = countries.find(c => c.name.toLowerCase().replace(/\s+/g, "-") === currentCountrySlug);
                           const name = item.name;
-                          const slug = name.toLowerCase().replace(/\s+/g, "-");
-
                           if (item.type === "activity") {
-                            const isActive = currentActivitySlug === slug;
-                            navigateWith(isActive ? null : name, country ? country.name : null);
+                            setPendingActivity((prev) => prev === name ? null : name);
                           } else if (item.type === "country") {
-                            const isActive = currentCountrySlug === slug;
-                            navigateWith(activity ? activity.name : null, isActive ? null : name);
+                            setPendingCountry((prev) => prev === name ? null : name);
                           }
                         }}
                         className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
@@ -437,17 +436,16 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
           {!searchOpen && activeFilterTab === "what" && (
             <div className="max-w-6xl mx-auto px-2 relative flex flex-wrap gap-2">
               {filteredActivities.map((item) => {
-                const isActive = currentActivitySlug === item.name.toLowerCase().replace(/\s+/g, "-");
+                const isActive = (pendingActivity
+                  ? pendingActivity === item.name
+                  : currentActivitySlug === item.name.toLowerCase().replace(/\s+/g, "-"));
                 return (
                   <button
                     key={`activity-${item.name}`}
                     onClick={() => {
-                      // When clicking an activity badge, pass the full country name (not slug) if present
-                      const activity = activities.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug);
-                      const country = countries.find(c => c.name.toLowerCase().replace(/\s+/g, "-") === currentCountrySlug);
-                      const name = item.name;
-                      const isActiveBadge = currentActivitySlug === name.toLowerCase().replace(/\s+/g, "-");
-                      navigateWith(isActiveBadge ? null : name, country ? country.name : null);
+                      setPendingActivity(
+                        pendingActivity === item.name ? null : item.name
+                      );
                     }}
                     className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
                       isActive
@@ -524,24 +522,23 @@ export default function SidebarFilters({ activities, countries, showMap }: Props
                     }}
                     renderRadiusControlsAbove
                   />
-                )}
+                )}  
               </div>
               {/* "Or anywhere in the world" header */}
               <h2 className="text-lg font-bold text-black mt-6 mb-2 px-2">Or anywhere in the world</h2>
               <div className="max-w-6xl mx-auto px-2 relative flex flex-wrap gap-2">
                 {filteredCountries.map((item) => {
                   const countrySlug = item.name.toLowerCase().replace(/\s+/g, "-");
-                  const isActive = currentCountrySlug === countrySlug;
+                  const isActive = (pendingCountry
+                    ? pendingCountry === item.name
+                    : currentCountrySlug === countrySlug);
                   return (
                     <button
                       key={`country-${item.name}`}
                       onClick={() => {
-                        // When clicking a country badge, pass the full activity name (not slug) if present
-                        const activity = activities.find(a => a.name.toLowerCase().replace(/\s+/g, "-") === currentActivitySlug);
-                        const name = item.name;
-                        const isActiveBadge = currentCountrySlug === name.toLowerCase().replace(/\s+/g, "-");
-                        setSelectedCountry(isActiveBadge ? "" : name);
-                        navigateWith(activity ? activity.name : null, isActiveBadge ? null : name);
+                        setPendingCountry(
+                          pendingCountry === item.name ? null : item.name
+                        );
                       }}
                       className={`px-3 py-1 text-sm border rounded-full whitespace-nowrap font-semibold ${
                         isActive
